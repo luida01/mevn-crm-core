@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import CustomersView from '../views/CustomersView.vue';
 import DashboardView from '../views/DashboardView.vue';
+import MangaListView from '../views/MangaListView.vue';
 
 const routes = [
     {
@@ -12,6 +13,11 @@ const routes = [
         path: '/customers',
         name: 'customers',
         component: CustomersView
+    },
+    {
+        path: '/mangas',
+        name: 'mangas',
+        component: MangaListView
     },
 ];
 

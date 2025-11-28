@@ -5,6 +5,7 @@ const router = useRouter();
 
 const apps = [
   { name: 'Customers', icon: '👥', route: '/customers', color: 'bg-blue-500' },
+  { name: 'Mangas', icon: '📚', route: '/mangas', color: 'bg-orange-500' },
   { name: 'Pipeline', icon: '📊', route: '/pipeline', color: 'bg-purple-500', disabled: true },
   { name: 'Invoicing', icon: '💰', route: '/invoicing', color: 'bg-green-500', disabled: true },
   { name: 'Settings', icon: '⚙️', route: '/settings', color: 'bg-gray-500', disabled: true },

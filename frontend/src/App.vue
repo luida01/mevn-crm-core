@@ -8,6 +8,7 @@ const customerStore = useCustomerStore();
 
 const currentModule = computed(() => {
   if (route.path.startsWith('/customers')) return 'Customers';
+  if (route.path.startsWith('/mangas')) return 'Mangas';
   if (route.path.startsWith('/pipeline')) return 'Pipeline';
   return '';
 });
@@ -42,6 +43,10 @@ const currentModule = computed(() => {
           <router-link to="/customers" class="hover:text-white transition-colors">List</router-link>
           <span class="hover:text-white cursor-not-allowed opacity-50" title="Coming Soon">Reporting</span>
           <span class="hover:text-white cursor-not-allowed opacity-50" title="Coming Soon">Configuration</span>
+        </template>
+        <template v-if="currentModule === 'Mangas'">
+          <router-link to="/mangas" class="hover:text-white transition-colors">Inventory</router-link>
+          <span class="hover:text-white cursor-not-allowed opacity-50" title="Coming Soon">Categories</span>
         </template>
       </div>
 

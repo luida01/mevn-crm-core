@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import customerRoutes from './routes/customerRoutes';
+import mangaRoutes from './routes/mangaRoutes';
 
 dotenv.config();
 
@@ -15,6 +16,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/customers', customerRoutes);
+app.use('/api/mangas', mangaRoutes);
 
 // Database Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mevn-crm';
