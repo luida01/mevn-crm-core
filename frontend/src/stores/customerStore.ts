@@ -15,9 +15,9 @@ export const useCustomerStore = defineStore('customer', {
             if (!state.searchQuery) return state.customers;
             const query = state.searchQuery.toLowerCase();
             return state.customers.filter(c =>
-                c.name.toLowerCase().includes(query) ||
-                c.email.toLowerCase().includes(query) ||
-                (c.company && c.company.toLowerCase().includes(query))
+                c.firstName.toLowerCase().includes(query) ||
+                c.lastName.toLowerCase().includes(query) ||
+                c.email.toLowerCase().includes(query)
             );
         }
     },
@@ -37,9 +37,23 @@ export const useCustomerStore = defineStore('customer', {
             this.loading = true;
             try {
                 const response = await api.post('/customers', customer);
-                this.customers.push(response.data);
+                this.customers.unshift(response.data);
             } catch (err: any) {
                 this.error = err.message || 'Error creating customer';
+            } finally {
+                this.loading = false;
+            }
+        },
+        async updateCustomer(id: string, updates: Partial<CustomerInput>) {
+            this.loading = true;
+            try {
+                const response = await api.put(`/customers/${id}`, updates);
+                const index = this.customers.findIndex(c => c._id === id);
+                if (index !== -1) {
+                    this.customers[index] = response.data;
+                }
+            } catch (err: any) {
+                this.error = err.message || 'Error updating customer';
             } finally {
                 this.loading = false;
             }

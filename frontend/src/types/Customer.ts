@@ -1,11 +1,17 @@
 export interface Customer {
     _id: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     email: string;
+    password?: string;
     phone?: string;
-    company?: string;
-    status: 'prospect' | 'lead' | 'negotiation' | 'closed';
-    notes?: string;
+    isActive: boolean;
+    address: {
+        street: string;
+        city: string;
+        zip: string;
+    };
+    rentals?: any[]; // Using any for now to avoid circular dependency with Manga type, or define Rental type
     createdAt: string;
 }
 

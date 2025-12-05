@@ -1,10 +1,16 @@
 import { Request, Response } from 'express';
 import Customer from '../models/Customer';
+import '../models/Rental'; // Register Rental model
 
 // Get all customers
 export const getCustomers = async (req: Request, res: Response) => {
     try {
-        const customers = await Customer.find().sort({ createdAt: -1 });
+        const customers = await Customer.find()
+            .sort({ createdAt: -1 })
+            .populate({
+                path: 'rentals',
+                populate: { path: 'manga' }
+            });
         res.json(customers);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching customers', error });
@@ -14,7 +20,11 @@ export const getCustomers = async (req: Request, res: Response) => {
 // Get single customer
 export const getCustomer = async (req: Request, res: Response) => {
     try {
-        const customer = await Customer.findById(req.params.id);
+        const customer = await Customer.findById(req.params.id)
+            .populate({
+                path: 'rentals',
+                populate: { path: 'manga' }
+            });
         if (!customer) return res.status(404).json({ message: 'Customer not found' });
         res.json(customer);
     } catch (error) {

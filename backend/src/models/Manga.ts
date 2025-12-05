@@ -12,6 +12,9 @@ export interface IManga extends Document {
     coverImage?: string;
     description?: string;
     publishedYear?: number;
+    status?: string; // Publication status: "Finished", "Publishing", etc.
+    malScore?: number; // MAL score (0-10)
+    malId?: string; // MAL ID for reference
     createdAt: Date;
 }
 
@@ -27,6 +30,9 @@ const MangaSchema: Schema = new Schema({
     coverImage: { type: String },
     description: { type: String },
     publishedYear: { type: Number },
+    status: { type: String }, // Publication status
+    malScore: { type: Number }, // MAL score
+    malId: { type: String }, // MAL ID
     createdAt: { type: Date, default: Date.now }
 });
 

@@ -4,11 +4,12 @@ import { useRouter } from 'vue-router';
 const router = useRouter();
 
 const apps = [
-  { name: 'Customers', icon: '👥', route: '/customers', color: 'bg-blue-500' },
-  { name: 'Mangas', icon: '📚', route: '/mangas', color: 'bg-orange-500' },
-  { name: 'Pipeline', icon: '📊', route: '/pipeline', color: 'bg-purple-500', disabled: true },
-  { name: 'Invoicing', icon: '💰', route: '/invoicing', color: 'bg-green-500', disabled: true },
-  { name: 'Settings', icon: '⚙️', route: '/settings', color: 'bg-gray-500', disabled: true },
+  { name: 'Customers', icon: '👥', route: '/admin/customers', color: 'bg-blue-500' },
+  { name: 'Mangas', icon: '📚', route: '/admin/mangas', color: 'bg-orange-500' },
+  { name: 'Rentals', icon: '📖', route: '/admin/rentals', color: 'bg-indigo-500' },
+  { name: 'Pipeline', icon: '📊', route: '/admin/pipeline', color: 'bg-purple-500', disabled: true },
+  { name: 'Invoicing', icon: '💰', route: '/admin/invoicing', color: 'bg-green-500', disabled: true },
+  { name: 'Settings', icon: '⚙️', route: '/admin/settings', color: 'bg-gray-500', disabled: true },
 ];
 
 const navigateTo = (route: string) => {

@@ -44,6 +44,20 @@ export const useMangaStore = defineStore('manga', {
                 this.loading = false;
             }
         },
+        async updateManga(id: string, mangaData: Partial<Manga>) {
+            this.loading = true;
+            try {
+                const response = await api.put(`/mangas/${id}`, mangaData);
+                const index = this.mangas.findIndex(m => m._id === id);
+                if (index !== -1) {
+                    this.mangas[index] = response.data;
+                }
+            } catch (err: any) {
+                this.error = err.message || 'Error updating manga';
+            } finally {
+                this.loading = false;
+            }
+        },
         async deleteManga(id: string) {
             try {
                 await api.delete(`/mangas/${id}`);
@@ -64,9 +78,11 @@ export const useMangaStore = defineStore('manga', {
                 this.loading = false;
             }
         },
-        async fetchCover(title: string, volume: number) {
+        async fetchCover(title: string, volume: number, author?: string) {
             try {
-                const response = await api.get(`/mangas/cover?title=${title}&volume=${volume}`);
+                const response = await api.get('/mangas/cover', {
+                    params: { title, volume, author }
+                });
                 return response.data.imageUrl;
             } catch (err: any) {
                 console.error('Error fetching cover:', err);

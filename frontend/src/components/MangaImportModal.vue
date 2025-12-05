@@ -26,6 +26,9 @@ const selectManga = (manga: any) => {
     description: manga.description,
     coverImage: manga.coverImage,
     publishedYear: manga.publishedYear,
+    status: manga.status, // Publication status
+    malScore: manga.malScore, // MAL score
+    malId: manga.malId, // MAL ID
     price: 0,
     rentalPrice: 0,
     stock: 0

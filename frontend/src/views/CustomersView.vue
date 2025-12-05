@@ -2,8 +2,20 @@
 import { ref } from 'vue';
 import CustomerList from '../components/CustomerList.vue';
 import CustomerForm from '../components/CustomerForm.vue';
+import type { Customer } from '../types/Customer';
 
 const showForm = ref(false);
+const editingCustomer = ref<Customer | null>(null);
+
+const handleEdit = (customer: Customer) => {
+  editingCustomer.value = customer;
+  showForm.value = true;
+};
+
+const closeForm = () => {
+  showForm.value = false;
+  editingCustomer.value = null;
+};
 </script>
 
 <template>
@@ -21,13 +33,13 @@ const showForm = ref(false);
     </div>
     
     <div v-if="showForm" class="mt-8">
-      <CustomerForm @close="showForm = false" />
+      <CustomerForm :customerToEdit="editingCustomer" @close="closeForm" />
     </div>
 
     <div class="mt-8 flex flex-col">
       <div class="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
         <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-          <CustomerList />
+          <CustomerList @edit="handleEdit" />
         </div>
       </div>
     </div>

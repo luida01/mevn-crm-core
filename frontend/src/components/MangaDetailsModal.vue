@@ -73,42 +73,7 @@ defineEmits(['close']);
           </p>
         </div>
 
-        <div class="pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-4">
-          <!-- Stock Status (Bottom Left) -->
-          <div :class="manga.stock > 0 ? 'text-green-600' : 'text-red-600'" class="font-bold flex items-center text-lg">
-            <span class="w-3 h-3 rounded-full mr-2" :class="manga.stock > 0 ? 'bg-green-500' : 'bg-red-500'"></span>
-            {{ manga.stock > 0 ? `${manga.stock} Available` : 'Out of Stock' }}
-          </div>
 
-          <!-- Actions (Bottom Right) -->
-          <div class="flex flex-wrap gap-3">
-            <!-- Notify Me (Only when out of stock) -->
-            <button v-if="manga.stock <= 0" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded shadow transition-colors flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
-              </svg>
-              Notify Me
-            </button>
-
-            <!-- Rent Button -->
-            <button 
-              v-if="manga.stock > 0"
-              class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded shadow transition-colors flex flex-col items-center min-w-[100px]"
-            >
-              <span>Rent</span>
-              <span class="text-xs font-normal opacity-90">${{ manga.rentalPrice }} / day</span>
-            </button>
-
-            <!-- Buy Button -->
-            <button 
-              v-if="manga.stock > 0"
-              class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded shadow transition-colors flex flex-col items-center min-w-[100px]"
-            >
-              <span>Buy</span>
-              <span class="text-xs font-normal opacity-90">${{ manga.price }}</span>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   </div>

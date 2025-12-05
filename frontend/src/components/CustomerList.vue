@@ -33,7 +33,8 @@ const deleteCustomer = async (id: string) => {
       <thead class="bg-gray-50">
         <tr>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rentals</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
           <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
         </tr>
@@ -41,29 +42,54 @@ const deleteCustomer = async (id: string) => {
       <tbody class="bg-white divide-y divide-gray-200">
         <tr v-for="customer in filteredCustomers" :key="customer._id">
           <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm font-medium text-gray-900">{{ customer.name }}</div>
-            <div class="text-sm text-gray-500">{{ customer.email }}</div>
+            <div class="text-sm font-medium text-gray-900">{{ customer.firstName }} {{ customer.lastName }}</div>
+            <div class="text-xs text-gray-500">{{ customer.address?.city }}</div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm text-gray-900">{{ customer.company || '-' }}</div>
+            <div class="text-sm text-gray-900">{{ customer.email }}</div>
+            <div class="text-xs text-gray-500">{{ customer.phone || '-' }}</div>
+          </td>
+          <td class="px-6 py-4">
+            <div class="text-sm text-gray-900">
+              <template v-if="customer.rentals && customer.rentals.length > 0">
+                <ul class="list-disc list-inside">
+                  <li v-for="rental in customer.rentals" :key="rental._id">
+                    {{ rental.manga ? rental.manga.title : 'Unknown Manga' }}
+                    <span class="text-xs font-semibold ml-1" 
+                          :class="{
+                            'text-green-600': rental.status === 'ACTIVE',
+                            'text-red-600': rental.status === 'LATE',
+                            'text-gray-500': rental.status === 'RETURNED'
+                          }">
+                      ({{ rental.status }})
+                    </span>
+                  </li>
+                </ul>
+              </template>
+              <span v-else class="text-gray-500">-</span>
+            </div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
-            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
               :class="{
-                'bg-green-100 text-green-800': customer.status === 'closed',
-                'bg-yellow-100 text-yellow-800': customer.status === 'negotiation',
-                'bg-blue-100 text-blue-800': customer.status === 'lead',
-                'bg-gray-100 text-gray-800': customer.status === 'prospect'
+                'bg-green-100 text-green-800': customer.rentals && customer.rentals.some(r => r.status === 'ACTIVE'),
+                'bg-red-100 text-red-800': customer.rentals && customer.rentals.some(r => r.status === 'LATE'),
+                'bg-gray-100 text-gray-800': !customer.rentals || customer.rentals.every(r => r.status === 'RETURNED')
               }">
-              {{ customer.status }}
+              {{ 
+                customer.rentals && customer.rentals.some(r => r.status === 'LATE') ? 'Overdue' :
+                customer.rentals && customer.rentals.some(r => r.status === 'ACTIVE') ? 'Renting' : 
+                'Not Renting' 
+              }}
             </span>
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-            <button @click="deleteCustomer(customer._id)" class="text-red-600 hover:text-red-900 ml-4">Delete</button>
+            <button @click="$emit('edit', customer)" class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</button>
+            <button @click="deleteCustomer(customer._id)" class="text-red-600 hover:text-red-900">Delete</button>
           </td>
         </tr>
         <tr v-if="filteredCustomers.length === 0">
-          <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+          <td colspan="5" class="px-6 py-4 text-center text-gray-500">
             {{ store.searchQuery ? 'No customers match your search.' : 'No customers found.' }}
           </td>
         </tr>

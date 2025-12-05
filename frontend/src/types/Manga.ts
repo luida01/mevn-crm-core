@@ -11,6 +11,9 @@ export interface Manga {
     coverImage?: string;
     description?: string;
     publishedYear?: number;
+    status?: string; // Publication status
+    malScore?: number; // MAL score
+    malId?: string; // MAL ID
     createdAt?: string;
 }
 
@@ -26,4 +29,7 @@ export interface MangaInput {
     coverImage?: string;
     description?: string;
     publishedYear?: number;
+    status?: string; // Publication status
+    malScore?: number; // MAL score
+    malId?: string; // MAL ID
 }
