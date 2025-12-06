@@ -1,6 +1,6 @@
-# 📚 Manga Store & Rental Platform
+# 📚 MangaGo - Manga Store & Rental Platform
 
-A modern, full-stack MEVN application for managing a manga store inventory, rentals, and sales. Built with a premium UI and powerful external API integrations.
+A modern, full-stack MEVN application for managing a manga store inventory, rentals, and sales. Built with a premium UI, dual-frontend architecture, and powerful external API integrations.
 
 ![Vue.js](https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vuedotjs&logoColor=4FC08D)
 ![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)
@@ -10,11 +10,22 @@ A modern, full-stack MEVN application for managing a manga store inventory, rent
 
 ## 🌟 Overview
 
-This project is a **comprehensive manga management platform** that combines:
-- 🏢 **CRM System**: Complete administrative panel for inventory, customers, and rental management
-- 🛍️ **E-commerce Portal**: Customer-facing shop with curated collections and premium UI
+This project is a **comprehensive manga management platform** with a **dual-frontend architecture**:
+- 🏢 **Admin Panel** (`frontend-admin`): Complete CRM for inventory, customers, and rental management
+- 🛍️ **Customer Shop** (`frontend`): E-commerce portal with curated collections and premium UI
 - 🔗 **External API Integration**: MyAnimeList (Jikan) for metadata and MangaDex for high-quality covers
 - 📦 **Volume-Level Tracking**: Individual volume management with specific covers and stock control
+
+## 🏗️ Project Structure
+
+```
+mevn-crm-manga/
+├── backend/           # Node.js + Express API
+├── frontend/          # Customer-facing shop (port 5173)
+├── frontend-admin/    # Admin dashboard (port 5174)
+├── docs/              # Documentation
+└── docker-compose.yml # Container orchestration
+```
 
 ## 📋 Key Features
 
@@ -25,9 +36,9 @@ This project is a **comprehensive manga management platform** that combines:
 - Fetch high-quality volume-specific covers from MangaDex
 - Intelligent search with spin-off filtering
 
-✅ **Dual Interface**
-- **Admin Panel**: Complete CRM for managing inventory, customers, and rentals
-- **Shop Portal**: Customer-facing e-commerce with curated collections
+✅ **Dual-Frontend Architecture**
+- **Admin Panel** (`frontend-admin`): Odoo-style CRM dashboard for managing inventory, customers, and rentals
+- **Shop Portal** (`frontend`): Customer-facing e-commerce with curated collections, policies, and FAQ
 
 ✅ **Volume Management**
 - Track individual manga volumes with specific covers
@@ -56,15 +67,15 @@ This project is a **comprehensive manga management platform** that combines:
 
 ### Prerequisites
 - Node.js & npm
-- Docker & Docker Compose (optional, for DB)
+- Docker & Docker Compose (optional)
 - MongoDB (local or Atlas)
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd mevn-crm
+   git clone https://github.com/luida01/mevn-crm-core.git
+   cd mevn-crm-manga
    ```
 
 2. **Backend Setup**
@@ -75,14 +86,21 @@ This project is a **comprehensive manga management platform** that combines:
    npm run dev
    ```
 
-3. **Frontend Setup**
+3. **Frontend Shop Setup**
    ```bash
    cd frontend
    npm install
-   npm run dev
+   npm run dev  # Runs on port 5173
    ```
 
-4. **Docker (Alternative)**
+4. **Frontend Admin Setup**
+   ```bash
+   cd frontend-admin
+   npm install
+   npm run dev  # Runs on port 5174
+   ```
+
+5. **Docker (All Services)**
    ```bash
    docker-compose up --build
    ```
@@ -98,7 +116,7 @@ This project is a **comprehensive manga management platform** that combines:
   - **MangaDex API**: High-quality volume-specific cover images
 - **Tools**: Axios, CORS, dotenv
 
-### Frontend
+### Frontend (Shop & Admin)
 - **Framework**: Vue 3.5.24 (Composition API)
 - **Build Tool**: Vite 7.2.4
 - **State Management**: Pinia 3.0.4
@@ -111,7 +129,8 @@ This project is a **comprehensive manga management platform** that combines:
 - **Services**:
   - MongoDB (port 27017)
   - Backend API (port 5000)
-  - Frontend Dev Server (port 5173)
+  - Frontend Shop (port 5173)
+  - Frontend Admin (port 5174)
 
 ## 📊 Data Models
 
@@ -164,42 +183,19 @@ This project is a **comprehensive manga management platform** that combines:
 - `PUT /api/rentals/:id` - Update rental status
 - `DELETE /api/rentals/:id` - Delete rental
 
-## 📈 Current Development Status
-
-**Latest Commits**:
-- `a9fee02` - docs: improved README and MEVN stack setup with Docker (8 days ago)
-- `50b5363` - Initial commit: Project setup (8 days ago)
-
-**Pending Changes**: 20 files modified with 657 additions and 318 deletions
-
-**Key Areas of Active Development**:
-- ✨ Enhanced customer list view with rental information
-- 🎨 Improved manga details modal and edit functionality
-- 🛍️ E-commerce shop view with curated collections
-- 📊 Rental information section with tracking
-- 🐳 Docker configuration optimization
-
 ## 🔮 Future Roadmap
 
-The project is currently in active development. The following features are planned for future releases:
+🛒 **Shopping Cart** - Complete cart management for sales and rentals
 
-🛒 **Shopping Cart**
-Complete cart management for sales and rentals.
+💳 **Payment Gateway** - Integration with Cardnet for secure transactions
 
-💳 **Payment Gateway**
-Integration with Cardnet for secure transactions.
+📅 **Enhanced Rental System** - Advanced tracking with due dates and late fees
 
-📅 **Enhanced Rental System**
-Advanced tracking with due dates, late fees, and detailed rental history.
+🔐 **User Authentication** - Customer accounts with order history and wishlist
 
-🔐 **User Authentication**
-Customer accounts with order history and wishlist.
+☁️ **Cloud Deployment** - Production build optimization for web hosting
 
-☁️ **Cloud Deployment**
-Production build optimization for web hosting.
-
-📊 **Analytics Dashboard**
-Sales reports, rental statistics, and inventory insights.
+📊 **Analytics Dashboard** - Sales reports, rental statistics, and inventory insights
 
 ## 👤 Author
 
