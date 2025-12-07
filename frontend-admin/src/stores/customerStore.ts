@@ -9,16 +9,42 @@ export const useCustomerStore = defineStore('customer', {
         loading: false,
         error: null as string | null,
         searchQuery: '',
+        statusFilter: 'all' as 'all' | 'renting' | 'overdue' | 'not-renting',
     }),
     getters: {
         filteredCustomers: (state) => {
-            if (!state.searchQuery) return state.customers;
-            const query = state.searchQuery.toLowerCase();
-            return state.customers.filter(c =>
-                c.firstName.toLowerCase().includes(query) ||
-                c.lastName.toLowerCase().includes(query) ||
-                c.email.toLowerCase().includes(query)
-            );
+            let result = state.customers;
+
+            // Filter by search query
+            if (state.searchQuery) {
+                const query = state.searchQuery.toLowerCase();
+                result = result.filter(c =>
+                    (c.firstName?.toLowerCase() || '').includes(query) ||
+                    (c.lastName?.toLowerCase() || '').includes(query) ||
+                    (c.email?.toLowerCase() || '').includes(query)
+                );
+            }
+
+            // Filter by rental status
+            if (state.statusFilter !== 'all') {
+                result = result.filter(c => {
+                    const hasActiveRental = c.rentals?.some((r: any) => r.status === 'ACTIVE');
+                    const hasLateRental = c.rentals?.some((r: any) => r.status === 'LATE');
+
+                    switch (state.statusFilter) {
+                        case 'renting':
+                            return hasActiveRental && !hasLateRental;
+                        case 'overdue':
+                            return hasLateRental;
+                        case 'not-renting':
+                            return !hasActiveRental && !hasLateRental;
+                        default:
+                            return true;
+                    }
+                });
+            }
+
+            return result;
         }
     },
     actions: {

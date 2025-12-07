@@ -50,7 +50,10 @@ export const updateCustomer = async (req: Request, res: Response) => {
             req.params.id,
             req.body,
             { new: true }
-        );
+        ).populate({
+            path: 'rentals',
+            populate: { path: 'manga' }
+        });
         if (!updatedCustomer) return res.status(404).json({ message: 'Customer not found' });
         res.json(updatedCustomer);
     } catch (error) {

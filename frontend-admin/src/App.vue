@@ -18,7 +18,7 @@ const currentModule = computed(() => {
 <template>
   <div class="min-h-screen bg-gray-100 flex flex-col">
     <!-- Top Navigation Bar (Odoo Style) -->
-    <nav class="bg-purple-900 text-white shadow-md h-12 flex items-center px-4 justify-between sticky top-0 z-50">
+    <nav class="bg-purple-900 text-white shadow-md h-14 flex items-center px-6 py-2 justify-between sticky top-0 z-50">
       
       <!-- Left Section: Logo & Apps Button -->
       <div class="flex items-center space-x-4">
@@ -42,8 +42,6 @@ const currentModule = computed(() => {
       <div class="hidden md:flex space-x-6 text-sm font-medium text-gray-300">
         <template v-if="currentModule === 'Customers'">
           <router-link to="/customers" class="hover:text-white transition-colors">List</router-link>
-          <span class="hover:text-white cursor-not-allowed opacity-50" title="Coming Soon">Reporting</span>
-          <span class="hover:text-white cursor-not-allowed opacity-50" title="Coming Soon">Configuration</span>
         </template>
         <template v-if="currentModule === 'Mangas'">
           <router-link to="/mangas" class="hover:text-white transition-colors">Inventory</router-link>
@@ -55,14 +53,43 @@ const currentModule = computed(() => {
         </template>
       </div>
 
-      <!-- Right Section: User Profile / Search -->
+      <!-- Right Section: User Profile / Search & Filters -->
       <div class="flex items-center space-x-3">
-        <div class="relative" v-if="currentModule === 'Customers'">
+        <!-- Customer Filters and Search -->
+        <div class="flex items-center space-x-2" v-if="currentModule === 'Customers'">
+          <!-- Status Filters -->
+          <div class="flex text-xs space-x-1">
+            <button 
+              @click="customerStore.statusFilter = 'all'"
+              :class="customerStore.statusFilter === 'all' ? 'bg-purple-600 text-white' : 'bg-purple-800 text-purple-300 hover:bg-purple-700'"
+              class="px-2 py-1 rounded transition-colors">
+              All
+            </button>
+            <button 
+              @click="customerStore.statusFilter = 'renting'"
+              :class="customerStore.statusFilter === 'renting' ? 'bg-green-600 text-white' : 'bg-purple-800 text-purple-300 hover:bg-purple-700'"
+              class="px-2 py-1 rounded transition-colors">
+              Renting
+            </button>
+            <button 
+              @click="customerStore.statusFilter = 'overdue'"
+              :class="customerStore.statusFilter === 'overdue' ? 'bg-red-600 text-white' : 'bg-purple-800 text-purple-300 hover:bg-purple-700'"
+              class="px-2 py-1 rounded transition-colors">
+              Overdue
+            </button>
+            <button 
+              @click="customerStore.statusFilter = 'not-renting'"
+              :class="customerStore.statusFilter === 'not-renting' ? 'bg-gray-600 text-white' : 'bg-purple-800 text-purple-300 hover:bg-purple-700'"
+              class="px-2 py-1 rounded transition-colors">
+              Not Renting
+            </button>
+          </div>
+          <!-- Search Box -->
           <input 
             v-model="customerStore.searchQuery"
             type="text" 
-            placeholder="Search customers..." 
-            class="bg-purple-800 text-white text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-purple-400 placeholder-purple-300 border-none w-48 transition-all focus:w-64"
+            placeholder="Search..." 
+            class="bg-purple-800 text-white text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-purple-400 placeholder-purple-300 border-none w-32 transition-all focus:w-48"
           >
         </div>
         <a href="http://localhost:5173" target="_blank" class="text-xs text-purple-300 hover:text-white transition-colors" title="Open Shop">

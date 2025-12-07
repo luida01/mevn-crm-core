@@ -1,18 +1,31 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, computed, ref } from 'vue';
 import { useCustomerStore } from '../stores/customerStore';
 import { storeToRefs } from 'pinia';
 
 const store = useCustomerStore();
-const { filteredCustomers, loading } = storeToRefs(store);
+const { loading } = storeToRefs(store);
+const filteredCustomers = computed(() => store.filteredCustomers);
+
+// Track which customer is pending deletion
+const pendingDeleteId = ref<string | null>(null);
 
 onMounted(() => {
   store.fetchCustomers();
 });
 
-const deleteCustomer = async (id: string) => {
-  if (confirm('Are you sure you want to delete this customer?')) {
-    await store.deleteCustomer(id);
+const requestDelete = (id: string) => {
+  pendingDeleteId.value = id;
+};
+
+const cancelDelete = () => {
+  pendingDeleteId.value = null;
+};
+
+const confirmDelete = async () => {
+  if (pendingDeleteId.value) {
+    await store.deleteCustomer(pendingDeleteId.value);
+    pendingDeleteId.value = null;
   }
 };
 </script>
@@ -85,7 +98,12 @@ const deleteCustomer = async (id: string) => {
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
             <button @click="$emit('edit', customer)" class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</button>
-            <button @click="deleteCustomer(customer._id)" class="text-red-600 hover:text-red-900">Delete</button>
+            <!-- Inline Delete Confirmation -->
+            <template v-if="pendingDeleteId === customer._id">
+              <button @click="confirmDelete" class="text-white bg-red-600 hover:bg-red-700 px-2 py-1 rounded text-xs mr-1">Confirm</button>
+              <button @click="cancelDelete" class="text-gray-600 bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-xs">Cancel</button>
+            </template>
+            <button v-else @click="requestDelete(customer._id)" class="text-red-600 hover:text-red-900">Delete</button>
           </td>
         </tr>
         <tr v-if="filteredCustomers.length === 0">
