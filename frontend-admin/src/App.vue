@@ -2,9 +2,11 @@
 import { useRoute } from 'vue-router';
 import { computed } from 'vue';
 import { useCustomerStore } from './stores/customerStore';
+import { useMangaStore } from './stores/mangaStore';
 
 const route = useRoute();
 const customerStore = useCustomerStore();
+const mangaStore = useMangaStore();
 
 const currentModule = computed(() => {
   if (route.path.startsWith('/customers')) return 'Customers';
@@ -45,7 +47,6 @@ const currentModule = computed(() => {
         </template>
         <template v-if="currentModule === 'Mangas'">
           <router-link to="/mangas" class="hover:text-white transition-colors">Inventory</router-link>
-          <span class="hover:text-white cursor-not-allowed opacity-50" title="Coming Soon">Categories</span>
         </template>
         <template v-if="currentModule === 'Rentals'">
           <router-link to="/rentals" class="hover:text-white transition-colors">All Rentals</router-link>
@@ -87,6 +88,50 @@ const currentModule = computed(() => {
           <!-- Search Box -->
           <input 
             v-model="customerStore.searchQuery"
+            type="text" 
+            placeholder="Search..." 
+            class="bg-purple-800 text-white text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-purple-400 placeholder-purple-300 border-none w-32 transition-all focus:w-48"
+          >
+        </div>
+
+        <!-- Manga Filters and Search -->
+        <div class="flex items-center space-x-2" v-if="currentModule === 'Mangas'">
+          <!-- Price Filter -->
+          <select 
+            v-model="mangaStore.priceRange"
+            class="bg-purple-800 text-white text-xs rounded px-2 py-1 border-none focus:ring-1 focus:ring-purple-400">
+            <option value="all">All Prices</option>
+            <option value="under10">&lt; $10</option>
+            <option value="10to20">$10-$20</option>
+            <option value="over20">&gt; $20</option>
+          </select>
+          <!-- Stock Filter -->
+          <select 
+            v-model="mangaStore.stockFilter"
+            class="bg-purple-800 text-white text-xs rounded px-2 py-1 border-none focus:ring-1 focus:ring-purple-400">
+            <option value="all">All Stock</option>
+            <option value="inStock">In Stock</option>
+            <option value="lowStock">Low Stock</option>
+            <option value="outOfStock">Out of Stock</option>
+          </select>
+          <!-- Status Filter -->
+          <select 
+            v-model="mangaStore.statusFilter"
+            class="bg-purple-800 text-white text-xs rounded px-2 py-1 border-none focus:ring-1 focus:ring-purple-400">
+            <option value="all">All Status</option>
+            <option value="Publishing">Publishing</option>
+            <option value="Finished">Finished</option>
+          </select>
+          <!-- Genre Filter -->
+          <select 
+            v-model="mangaStore.genreFilter"
+            class="bg-purple-800 text-white text-xs rounded px-2 py-1 border-none focus:ring-1 focus:ring-purple-400">
+            <option value="all">All Genres</option>
+            <option v-for="genre in mangaStore.availableGenres" :key="genre" :value="genre">{{ genre }}</option>
+          </select>
+          <!-- Search Box -->
+          <input 
+            v-model="mangaStore.searchQuery"
             type="text" 
             placeholder="Search..." 
             class="bg-purple-800 text-white text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-purple-400 placeholder-purple-300 border-none w-32 transition-all focus:w-48"

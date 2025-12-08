@@ -14,10 +14,11 @@
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Volume</label>
           <div class="flex gap-2">
             <input v-model.number="form.volume" type="number" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-            <button @click.prevent="fetchCover" type="button" class="mt-1 bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-3 rounded" title="Fetch Cover from MangaDex">
-              ✨
+            <button @click.prevent="fetchCover(true)" type="button" class="mt-1 bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-3 rounded" title="Fetch Cover from MangaDex" :disabled="coverLoading">
+              {{ coverLoading ? '⏳' : '✨' }}
             </button>
           </div>
+          <p v-if="coverError" class="text-sm text-amber-600 dark:text-amber-400 mt-1">{{ coverError }}</p>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Author</label>
@@ -77,6 +78,8 @@ const props = defineProps<{
 
 const emit = defineEmits(['close', 'save']);
 const store = useMangaStore();
+const coverLoading = ref(false);
+const coverError = ref('');
 
 const form = ref<MangaInput>({
   title: '',
@@ -136,22 +139,46 @@ const save = () => {
   emit('save', { ...form.value });
 };
 
-const fetchCover = async () => {
+const fetchCover = async (manual = false) => {
   if (!form.value.title) return;
-  const coverUrl = await store.fetchCover(form.value.title, form.value.volume, form.value.author);
+  
+  if (manual) {
+      coverLoading.value = true;
+      coverError.value = '';
+  }
+  
+  console.log(`[MangaForm] Fetching cover for: "${form.value.title}" Vol.${form.value.volume}`);
+  const coverUrl = await store.fetchCover(form.value.title, form.value.volume, form.value.author, form.value.malId);
+  
+  if (manual) coverLoading.value = false;
+  
   if (coverUrl) {
     form.value.coverImage = coverUrl;
+    coverError.value = '';
+    console.log(`[MangaForm] Got cover: ${coverUrl}`);
+  } else {
+    // Only show error text if manually requested
+    if (manual) {
+        coverError.value = `Cover for Vol.${form.value.volume} not found on MangaDex. Using existing cover.`;
+    } else {
+        console.warn(`[MangaForm] Auto-fetch failed for Vol.${form.value.volume}`);
+    }
   }
-  // If not found, keep the existing one (e.g. from MAL import)
 };
 
 // Auto-fetch cover when volume changes
 let debounceTimer: any = null;
-watch(() => form.value.volume, (newVal) => {
+watch(() => form.value.volume, (newVal, oldVal) => {
+  // If we already have a cover (e.g. from Import) and this is the initial load or same volume, skip
+  if (form.value.coverImage && (oldVal === undefined || newVal === oldVal)) {
+      return;
+  }
+
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     if (newVal && form.value.title) {
-      fetchCover();
+      console.log(`[MangaForm] Watcher triggering auto-fetch for Vol.${newVal}`);
+      fetchCover(false);
     }
   }, 500); // 500ms debounce
 });

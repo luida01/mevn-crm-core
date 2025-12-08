@@ -9,16 +9,70 @@ export const useMangaStore = defineStore('manga', {
         loading: false,
         error: null as string | null,
         searchQuery: '',
+        // Filters
+        priceRange: 'all' as 'all' | 'under10' | '10to20' | 'over20',
+        stockFilter: 'all' as 'all' | 'inStock' | 'lowStock' | 'outOfStock',
+        statusFilter: 'all' as 'all' | 'Finished' | 'Publishing',
+        genreFilter: 'all' as string,
     }),
     getters: {
+        // Standard MAL manga genres
+        availableGenres: () => [
+            'Action', 'Adventure', 'Comedy', 'Drama', 'Fantasy',
+            'Horror', 'Mystery', 'Psychological', 'Romance', 'Sci-Fi',
+            'Slice of Life', 'Sports', 'Supernatural', 'Thriller',
+            'Shounen', 'Shoujo', 'Seinen', 'Josei', 'Isekai', 'Mecha'
+        ],
         filteredMangas: (state) => {
-            if (!state.searchQuery) return state.mangas;
-            const query = state.searchQuery.toLowerCase();
-            return state.mangas.filter(m =>
-                m.title.toLowerCase().includes(query) ||
-                m.author.toLowerCase().includes(query) ||
-                m.genre.toLowerCase().includes(query)
-            );
+            let result = state.mangas;
+
+            // Filter by search query
+            if (state.searchQuery) {
+                const query = state.searchQuery.toLowerCase();
+                result = result.filter(m =>
+                    (m.title?.toLowerCase() || '').includes(query) ||
+                    (m.author?.toLowerCase() || '').includes(query) ||
+                    (m.genre?.toLowerCase() || '').includes(query)
+                );
+            }
+
+            // Filter by price range
+            if (state.priceRange !== 'all') {
+                result = result.filter(m => {
+                    const price = m.price || 0;
+                    switch (state.priceRange) {
+                        case 'under10': return price < 10;
+                        case '10to20': return price >= 10 && price <= 20;
+                        case 'over20': return price > 20;
+                        default: return true;
+                    }
+                });
+            }
+
+            // Filter by stock
+            if (state.stockFilter !== 'all') {
+                result = result.filter(m => {
+                    const stock = m.stock || 0;
+                    switch (state.stockFilter) {
+                        case 'inStock': return stock > 5;
+                        case 'lowStock': return stock > 0 && stock <= 5;
+                        case 'outOfStock': return stock === 0;
+                        default: return true;
+                    }
+                });
+            }
+
+            // Filter by publication status
+            if (state.statusFilter !== 'all') {
+                result = result.filter(m => m.status === state.statusFilter);
+            }
+
+            // Filter by genre (partial match since manga may have multiple genres)
+            if (state.genreFilter !== 'all') {
+                result = result.filter(m => m.genre?.includes(state.genreFilter));
+            }
+
+            return result;
         }
     },
     actions: {
@@ -78,10 +132,13 @@ export const useMangaStore = defineStore('manga', {
                 this.loading = false;
             }
         },
-        async fetchCover(title: string, volume: number, author?: string) {
+        async fetchCover(title: string, volume: number, author?: string, malId?: string) {
             try {
                 const response = await api.get('/mangas/cover', {
-                    params: { title, volume, author }
+                    params: { title, volume, author, malId },
+                    paramsSerializer: {
+                        encode: (value: string) => encodeURIComponent(value)
+                    }
                 });
                 return response.data.imageUrl;
             } catch (err: any) {
