@@ -17,6 +17,10 @@ services:
     environment:
       - PORT=5000
       - MONGODB_URI=mongodb://mongo:27017/mevn-crm
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:5174
+      - JWT_SECRET=change_this_dev_secret
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin123
     depends_on:
       - mongo
     volumes:

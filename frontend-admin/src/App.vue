@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { computed } from 'vue';
 import { useCustomerStore } from './stores/customerStore';
 import { useMangaStore } from './stores/mangaStore';
+import { clearAuthToken } from './services/auth';
 
 const route = useRoute();
+const router = useRouter();
 const customerStore = useCustomerStore();
 const mangaStore = useMangaStore();
+
+const isLoginRoute = computed(() => route.path === '/login');
 
 const currentModule = computed(() => {
   if (route.path.startsWith('/customers')) return 'Customers';
@@ -15,10 +19,17 @@ const currentModule = computed(() => {
   if (route.path === '/') return 'Dashboard';
   return '';
 });
+
+const handleLogout = async () => {
+  clearAuthToken();
+  await router.push('/login');
+};
 </script>
 
 <template>
   <div class="min-h-screen bg-gray-100 flex flex-col">
+    <router-view v-if="isLoginRoute"></router-view>
+    <template v-else>
     <!-- Top Navigation Bar (Odoo Style) -->
     <nav class="bg-purple-900 text-white shadow-md h-14 flex items-center px-6 py-2 justify-between sticky top-0 z-50">
       
@@ -140,6 +151,9 @@ const currentModule = computed(() => {
         <a href="http://localhost:5173" target="_blank" class="text-xs text-purple-300 hover:text-white transition-colors" title="Open Shop">
           🏪 Shop
         </a>
+        <button @click="handleLogout" class="text-xs bg-purple-700 hover:bg-purple-600 px-2 py-1 rounded transition-colors" title="Cerrar sesión">
+          Logout
+        </button>
         <div class="h-8 w-8 rounded-full bg-purple-700 flex items-center justify-center text-xs font-bold border border-purple-600">
           AD
         </div>
@@ -150,5 +164,6 @@ const currentModule = computed(() => {
     <main class="flex-grow">
       <router-view></router-view>
     </main>
+    </template>
   </div>
 </template>

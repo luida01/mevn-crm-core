@@ -6,8 +6,11 @@ import {
     updateCustomer,
     deleteCustomer
 } from '../controllers/customerController';
+import { requireAuth, requireRole } from '../middleware/auth';
 
 const router = Router();
+
+router.use(requireAuth, requireRole('admin'));
 
 router.get('/', getCustomers);
 router.get('/:id', getCustomer);

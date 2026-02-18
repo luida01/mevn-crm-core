@@ -1,29 +1,41 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import type { RouteRecordRaw } from 'vue-router';
 import DashboardView from '../views/DashboardView.vue';
 import CustomersView from '../views/CustomersView.vue';
 import MangaListView from '../views/MangaListView.vue';
 import RentalsView from '../views/RentalsView.vue';
+import LoginView from '../views/LoginView.vue';
+import { isAuthenticated } from '../services/auth';
 
-const routes = [
+const routes: RouteRecordRaw[] = [
+    {
+        path: '/login',
+        name: 'login',
+        component: LoginView
+    },
     {
         path: '/',
         name: 'dashboard',
-        component: DashboardView
+        component: DashboardView,
+        meta: { requiresAuth: true }
     },
     {
         path: '/customers',
         name: 'customers',
-        component: CustomersView
+        component: CustomersView,
+        meta: { requiresAuth: true }
     },
     {
         path: '/mangas',
         name: 'mangas',
-        component: MangaListView
+        component: MangaListView,
+        meta: { requiresAuth: true }
     },
     {
         path: '/rentals',
         name: 'rentals',
-        component: RentalsView
+        component: RentalsView,
+        meta: { requiresAuth: true }
     },
 ];
 
@@ -36,6 +48,18 @@ const router = createRouter({
         }
         return { top: 0 };
     }
+});
+
+router.beforeEach((to) => {
+    if (to.meta.requiresAuth && !isAuthenticated()) {
+        return { name: 'login', query: { redirect: to.fullPath } };
+    }
+
+    if (to.name === 'login' && isAuthenticated()) {
+        return { name: 'dashboard' };
+    }
+
+    return true;
 });
 
 export default router;

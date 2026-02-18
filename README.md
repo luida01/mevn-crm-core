@@ -82,7 +82,7 @@ mevn-crm-manga/
    ```bash
    cd backend
    npm install
-   # Create .env file with MONGODB_URI
+   # Create .env with: MONGODB_URI, JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD, CORS_ORIGINS
    npm run dev
    ```
 
@@ -99,6 +99,7 @@ mevn-crm-manga/
    npm install
    npm run dev  # Runs on port 5174
    ```
+   Then open `http://localhost:5174/login` and authenticate with `ADMIN_USERNAME` / `ADMIN_PASSWORD`.
 
 5. **Docker (All Services)**
    ```bash
@@ -152,12 +153,19 @@ mevn-crm-manga/
 
 ## 🔌 API Endpoints
 
+### Authentication
+- `POST /api/auth/login` - Returns JWT token for admin access
+
+### Security Notes
+- Protected routes expect `Authorization: Bearer <token>`
+- CORS is restricted by `CORS_ORIGINS` (comma-separated origins)
+
 ### Manga Management
 - `GET /api/mangas` - List all manga
 - `GET /api/mangas/:id` - Get specific manga
-- `POST /api/mangas` - Create new manga
-- `PUT /api/mangas/:id` - Update manga
-- `DELETE /api/mangas/:id` - Delete manga
+- `POST /api/mangas` - Create new manga (admin token required)
+- `PUT /api/mangas/:id` - Update manga (admin token required)
+- `DELETE /api/mangas/:id` - Delete manga (admin token required)
 - `GET /api/mangas/search?q=query` - Search local inventory
 - `GET /api/mangas/search-remote?q=query` - Search MyAnimeList
 - `GET /api/mangas/cover?title=X&volume=Y` - Fetch MangaDex cover
@@ -172,16 +180,16 @@ mevn-crm-manga/
 - `GET /api/shop/most-rented-today` - Daily rental rankings
 
 ### Customer Management
-- `GET /api/customers` - List all customers
-- `POST /api/customers` - Create customer
-- `PUT /api/customers/:id` - Update customer
-- `DELETE /api/customers/:id` - Delete customer
+- `GET /api/customers` - List all customers (admin token required)
+- `POST /api/customers` - Create customer (admin token required)
+- `PUT /api/customers/:id` - Update customer (admin token required)
+- `DELETE /api/customers/:id` - Delete customer (admin token required)
 
 ### Rental Management
-- `GET /api/rentals` - List all rentals
-- `POST /api/rentals` - Create rental
-- `PUT /api/rentals/:id` - Update rental status
-- `DELETE /api/rentals/:id` - Delete rental
+- `GET /api/rentals` - List all rentals (admin token required)
+- `POST /api/rentals` - Create rental (admin token required)
+- `PUT /api/rentals/:id` - Update rental status (admin token required)
+- `DELETE /api/rentals/:id` - Delete rental (admin token required)
 
 ## 🔮 Future Roadmap
 
