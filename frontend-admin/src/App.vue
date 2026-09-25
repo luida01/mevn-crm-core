@@ -5,7 +5,7 @@ import { clearAuthToken } from './services/auth';
 import { useMangaStore } from './stores/mangaStore';
 const route = useRoute(); const router = useRouter(); const mangaStore = useMangaStore();
 const isLogin = computed(() => route.path === '/login');
-const links = [{ to: '/customers', label: 'Clientes' }, { to: '/mangas', label: 'Mangas' }, { to: '/rentals', label: 'Alquileres' }, { to: '/pipeline', label: 'Pipeline' }, { to: '/invoicing', label: 'Cobros' }, { to: '/settings', label: 'Configuración' }];
+const links = [{ to: '/customers', label: 'Clientes' }, { to: '/mangas', label: 'Mangas' }, { to: '/rentals', label: 'Alquileres' }, { to: '/orders', label: 'Pedidos' }, { to: '/pipeline', label: 'Pipeline' }, { to: '/invoicing', label: 'Cobros' }, { to: '/settings', label: 'Configuración' }];
 const logout = async () => { clearAuthToken(); await router.push('/login'); };
 const shopUrl = import.meta.env.VITE_SHOP_URL || window.location.protocol + '//' + window.location.hostname + ':5173';
 </script>

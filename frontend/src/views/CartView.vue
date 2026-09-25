@@ -26,9 +26,10 @@
           <div><span>Artículos</span><strong>{{ cart.itemCount }}</strong></div>
           <div class="cart-summary__total"><span>Total estimado</span><strong>${{ cart.subtotal.toFixed(2) }}</strong></div>
           <p>Los alquileres se calculan por volumen, unidad y día.</p>
+          <p v-if="cancelMessage" class="cart-summary__error" role="status">{{ cancelMessage }}</p>
           <p v-if="hasUnavailableStock" class="cart-summary__error" role="alert">Revisa las cantidades: algún volumen ya no tiene stock suficiente.</p>
           <button type="button" :disabled="hasUnavailableStock" @click="checkoutOpen = true">Continuar al pago</button>
-          <small>Pasarela de demostración · no se aceptan pagos reales</small>
+          <small>Stripe Checkout en modo de prueba · no se aceptan pagos reales</small>
         </aside>
       </div>
 
@@ -40,14 +41,27 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
+import api from '../services/api';
 import CartCheckoutDialog from '../components/CartCheckoutDialog.vue';
 import ShopFooter from '../components/ShopFooter.vue';
 import ShopHeader from '../components/ShopHeader.vue';
 import { useCartStore, type CartLine } from '../stores/cartStore';
 
 const cart = useCartStore();
+const route = useRoute();
 const checkoutOpen = ref(false);
+const cancelMessage = ref('');
+onMounted(async () => {
+  if (route.query.payment !== 'cancelled' || typeof route.query.order_id !== 'string' || typeof route.query.token !== 'string') return;
+  try {
+    await api.post(`/checkout/cancel/${encodeURIComponent(route.query.order_id)}`, undefined, { params: { token: route.query.token } });
+    cancelMessage.value = 'Pago cancelado. Liberamos las unidades reservadas; puedes volver a intentarlo cuando quieras.';
+  } catch {
+    cancelMessage.value = 'El pago se canceló. Estamos liberando la reserva; si el stock tarda unos minutos en actualizarse, vuelve a cargar la tienda.';
+  }
+});
 const lineKey = (line: CartLine) => `${line.manga._id}:${line.kind}`;
 const lineTotal = (line: CartLine) => (line.kind === 'purchase' ? line.manga.price : line.manga.rentalPrice * line.days) * line.quantity;
 const totalForManga = (mangaId: string) => cart.lines.filter(line => line.manga._id === mangaId).reduce((sum, line) => sum + line.quantity, 0);

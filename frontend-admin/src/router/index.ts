@@ -8,12 +8,14 @@ import LoginView from '../views/LoginView.vue';
 import PipelineView from '../views/PipelineView.vue';
 import InvoicingView from '../views/InvoicingView.vue';
 import SettingsView from '../views/SettingsView.vue';
+import OrdersView from '../views/OrdersView.vue';
 import { isAuthenticated } from '../services/auth';
 
 const routes: RouteRecordRaw[] = [
     { path: '/pipeline', name: 'pipeline', component: PipelineView, meta: { requiresAuth: true } },
     { path: '/invoicing', name: 'invoicing', component: InvoicingView, meta: { requiresAuth: true } },
     { path: '/settings', name: 'settings', component: SettingsView, meta: { requiresAuth: true } },
+    { path: '/orders', name: 'orders', component: OrdersView, meta: { requiresAuth: true } },
     { path: '/:pathMatch(.*)*', redirect: '/' },
     {
         path: '/login',

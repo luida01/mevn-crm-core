@@ -6,6 +6,7 @@ import ReturnPolicyView from '../views/ReturnPolicyView.vue';
 import TermsView from '../views/TermsView.vue';
 import CatalogView from '../views/CatalogView.vue';
 import CartView from '../views/CartView.vue';
+import CheckoutConfirmationView from '../views/CheckoutConfirmationView.vue';
 
 const routes = [
     {
@@ -23,6 +24,7 @@ const routes = [
         name: 'cart',
         component: CartView
     },
+    { path: '/pago/confirmacion', name: 'checkout-confirmation', component: CheckoutConfirmationView },
     {
         path: '/faq',
         name: 'faq',

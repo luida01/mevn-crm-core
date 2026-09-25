@@ -10,6 +10,9 @@ import shopRoutes from './routes/shopRoutes';
 import authRoutes from './routes/authRoutes';
 import invoiceRoutes from './routes/invoiceRoutes';
 import settingsRoutes from './routes/settingsRoutes';
+import checkoutRoutes from './routes/checkoutRoutes';
+import paymentWebhookRoutes from './routes/paymentWebhookRoutes';
+import orderRoutes from './routes/orderRoutes';
 
 const app = express();
 const PORT = Number.parseInt(process.env.PORT || '5000', 10);
@@ -32,8 +35,10 @@ app.use(cors({
         callback(new Error('Origin not allowed by CORS'));
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'Stripe-Signature']
 }));
+// Stripe signature verification needs the exact raw body before JSON parsing.
+app.use('/api/payments/webhook', express.raw({ type: 'application/json', limit: '1mb' }), paymentWebhookRoutes);
 app.use(express.json({ limit: '1mb' }));
 
 app.get('/health/live', (_req, res) => {
@@ -56,6 +61,8 @@ app.use('/api/rentals', rentalRoutes);
 app.use('/api/shop', shopRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/checkout', checkoutRoutes);
+app.use('/api/orders', orderRoutes);
 
 app.use((error: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (res.headersSent) {

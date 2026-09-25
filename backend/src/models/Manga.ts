@@ -9,6 +9,7 @@ export interface IManga extends Document {
     price: number;
     rentalPrice: number;
     stock: number;
+    reservations: Array<{ orderId: Types.ObjectId; quantity: number; expiresAt: Date }>;
     createdAt: Date;
 }
 
@@ -20,12 +21,18 @@ const MangaSchema = new Schema<IManga>({
     price: { type: Number, required: true, min: 0 },
     rentalPrice: { type: Number, required: true, min: 0 },
     stock: { type: Number, required: true, default: 0, min: 0, validate: Number.isInteger },
+    reservations: { type: [{
+        orderId: { type: Schema.Types.ObjectId, ref: 'Order', required: true },
+        quantity: { type: Number, required: true, min: 1 },
+        expiresAt: { type: Date, required: true }
+    }], default: [], select: false },
     createdAt: { type: Date, default: Date.now }
 });
 
 MangaSchema.set('toJSON', {
     transform: (_document, ret) => {
         const output = ret as unknown as Record<string, unknown>;
+        delete output.reservations;
         const reference = output.series;
         if (!reference || typeof reference !== 'object' || !('_id' in reference)) return output;
         const series = reference as Record<string, unknown>;

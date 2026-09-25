@@ -131,6 +131,7 @@ The migration groups records by normalized title, records differing authors as a
 
 - Pipeline groups rentals into active, overdue, returned/unpaid and completed. Return and payment actions drive those stages.
 - Invoicing records payments and issues one printable internal receipt per rental. Receipts preserve issuer, customer, manga and amount snapshots; payment status stays linked to the rental. These are not fiscal invoices and do not process online payments.
+- The mixed shop cart checks out purchases and rentals together through Stripe Checkout in test mode. The backend calculates prices from inventory, reserves units atomically for 30 minutes, receives signed Stripe webhooks, creates rentals after paid checkouts, and stores an internal printable order receipt. Stripe keys are optional for running the app; checkout stays disabled until valid test keys are configured.
 - Settings stores business contact details and suggested rental days. Updates affect future receipts and new rental forms.
 - The public catalog includes every volume, even when stock is zero; search and availability filters are available. Remote imports start with zero stock and zero prices until staff updates them.
 - With MongoDB running locally, run `npm run check:workflows` from `backend`. It builds the API, starts an isolated instance, checks customer/inventory/rental/payment/receipt/settings flows and deletes its own randomly named test database. `TEST_MONGODB_URI` optionally overrides the MongoDB server; no application records are used.
@@ -208,6 +209,20 @@ The migration groups records by normalized title, records differing authors as a
 - `GET /api/shop/top-authors?limit=6` - Popular authors
 - `GET /api/shop/most-read-week` - Weekly rentals (currently used as a reading-interest proxy)
 - `GET /api/shop/most-rented-today` - Daily rental rankings
+- `GET /api/checkout/config` - Reports whether Stripe test checkout is configured
+- `POST /api/checkout/session` - Validates customer/cart, reserves stock and creates a Stripe Checkout session (requires `Idempotency-Key`)
+- `GET /api/checkout/confirmation/:sessionId` - Returns safe order status and internal receipt after payment
+- `POST /api/payments/webhook` - Receives signed Stripe events; use Stripe CLI to forward test events
+- `GET /api/orders` - Admin order and receipt list (admin token required)
+
+### Stripe test checkout setup
+
+1. Add Stripe **test mode** credentials to the ignored root `.env`: `STRIPE_SECRET_KEY=sk_test_...` and `STRIPE_WEBHOOK_SECRET=whsec_...`. Set `STRIPE_CURRENCY` (defaults to `usd`) and `SHOP_URL` if the shop is hosted at another local URL.
+2. Install the official Stripe CLI separately and run `stripe listen --forward-to localhost:5000/api/payments/webhook`; put the displayed `whsec_...` in `.env` and restart the backend.
+3. Rebuild/restart Compose with `docker compose up -d --build backend frontend frontend-admin` and test using Stripe's documented test card `4242 4242 4242 4242` with any future expiry and any CVC.
+4. Paid orders appear under Admin → Pedidos. Paid rental lines also appear under Alquileres. Expired sessions release their stock reservation; the printed receipt is an internal, non-fiscal record.
+
+Checkout is deliberately restricted to `sk_test_` keys in this implementation. Stripe account onboarding and live payment availability depend on Stripe-supported business locations and are not enabled here.
 
 ### Customer Management
 - `GET /api/customers` - List all customers (admin token required)

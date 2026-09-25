@@ -292,7 +292,11 @@ export const deleteManga = async (req: Request, res: Response) => {
             return;
         }
 
-        const deletedManga = await Manga.findByIdAndDelete(req.params.id);
+        const deletedManga = await Manga.findOneAndDelete({ _id: req.params.id, $or: [{ reservations: { $exists: false } }, { reservations: { $size: 0 } }] });
+        if (!deletedManga && await Manga.exists({ _id: req.params.id })) {
+            res.status(409).json({ message: 'Cannot delete a manga with stock reserved for a pending checkout' });
+            return;
+        }
         if (!deletedManga) return res.status(404).json({ message: 'Manga not found' });
         res.json({ message: 'Manga deleted successfully' });
     } catch (error: unknown) {

@@ -34,7 +34,7 @@ export const serializeManga = (document: IManga): Record<string, unknown> => {
         : null;
     const volumeId = volume._id;
     const seriesId = series?._id ?? candidate;
-    const { series: _series, ...volumeFields } = volume;
+    const { series: _series, reservations: _reservations, ...volumeFields } = volume;
     return {
         ...(series || {}),
         ...volumeFields,
