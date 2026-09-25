@@ -4,7 +4,6 @@ export interface ICustomer extends Document {
     firstName: string;
     lastName: string;
     email: string;
-    password?: string; // Hashed
     phone?: string;
     isActive: boolean;
     address: {
@@ -16,11 +15,10 @@ export interface ICustomer extends Document {
 }
 
 const CustomerSchema: Schema = new Schema({
-    firstName: { type: String, required: true },
-    lastName: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String }, // Optional for now if using external auth or just simple
-    phone: { type: String },
+    firstName: { type: String, required: true, trim: true, maxlength: 100 },
+    lastName: { type: String, required: true, trim: true, maxlength: 100 },
+    email: { type: String, required: true, unique: true, trim: true, lowercase: true, maxlength: 254 },
+    phone: { type: String, trim: true, maxlength: 40 },
     isActive: { type: Boolean, default: true },
     address: {
         street: { type: String },

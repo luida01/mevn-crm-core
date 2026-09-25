@@ -75,7 +75,7 @@ mevn-crm-manga/
 1. **Clone the repository**
    ```bash
    git clone https://github.com/luida01/mevn-crm-core.git
-   cd mevn-crm-manga
+   cd mevn-crm-core
    ```
 
 2. **Backend Setup**
@@ -103,7 +103,13 @@ mevn-crm-manga/
 
 5. **Docker (All Services)**
    ```bash
-   docker-compose up --build
+   # Copy .env.example to .env, then set a random JWT_SECRET (32+ characters)
+   # and an ADMIN_PASSWORD (12+ characters).
+   docker compose up --build
+   ```
+   Open `http://localhost:5173` for the shop and `http://localhost:5174/login` for admin. MongoDB data persists in the `mongo-data` volume. The optional seed is safe to rerun and only inserts missing records:
+   ```bash
+   docker compose exec backend npm run seed
    ```
 
 ## 🛠️ Tech Stack
@@ -116,6 +122,7 @@ mevn-crm-manga/
   - **Jikan API**: MyAnimeList metadata (title, author, genre, score, status)
   - **MangaDex API**: High-quality volume-specific cover images
 - **Tools**: Axios, CORS, dotenv
+- **Security**: Helmet headers, allowlisted CORS, HS256 JWTs, login rate limiting, and bounded JSON request bodies
 
 ### Frontend (Shop & Admin)
 - **Framework**: Vue 3.5.24 (Composition API)
@@ -157,8 +164,10 @@ mevn-crm-manga/
 - `POST /api/auth/login` - Returns JWT token for admin access
 
 ### Security Notes
-- Protected routes expect `Authorization: Bearer <token>`
+- All `/api/mangas`, `/api/customers`, and `/api/rentals` routes expect `Authorization: Bearer <token>`
 - CORS is restricted by `CORS_ORIGINS` (comma-separated origins)
+- Set `JWT_SECRET` to at least 32 characters and `ADMIN_PASSWORD` to at least 12 characters. Compose binds service ports to localhost and reads secrets from the ignored root `.env` file.
+- `GET /health/live` reports that the API process is running; `GET /health/ready` reports whether MongoDB is connected.
 
 ### Manga Management
 - `GET /api/mangas` - List all manga
@@ -172,11 +181,11 @@ mevn-crm-manga/
 
 ### Shop (E-commerce)
 - `GET /api/shop/top-rated?limit=10` - Top-rated manga (MAL ≥ 7.5)
-- `GET /api/shop/recent-arrivals?limit=6` - Recent additions
+- `GET /api/shop/recent?limit=6` - Recent additions
 - `GET /api/shop/collections/:theme` - Thematic collections
-- `GET /api/shop/authors/:author` - Manga by author
+- `GET /api/shop/author/:author` - Manga by author
 - `GET /api/shop/top-authors?limit=6` - Popular authors
-- `GET /api/shop/most-read-week` - Weekly rankings
+- `GET /api/shop/most-read-week` - Weekly rentals (currently used as a reading-interest proxy)
 - `GET /api/shop/most-rented-today` - Daily rental rankings
 
 ### Customer Management
@@ -188,8 +197,8 @@ mevn-crm-manga/
 ### Rental Management
 - `GET /api/rentals` - List all rentals (admin token required)
 - `POST /api/rentals` - Create rental (admin token required)
-- `PUT /api/rentals/:id` - Update rental status (admin token required)
-- `DELETE /api/rentals/:id` - Delete rental (admin token required)
+- `PUT /api/rentals/:id/return` - Return a rental and restore stock (admin token required)
+- `PUT /api/rentals/:id/payment` - Toggle payment status (admin token required)
 
 ## 🔮 Future Roadmap
 

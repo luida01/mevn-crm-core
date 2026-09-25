@@ -1,58 +1,119 @@
 import { Request, Response } from 'express';
-import Manga from '../models/Manga';
+import mongoose from 'mongoose';
+import Manga, { IManga } from '../models/Manga';
+import Rental from '../models/Rental';
 import axios from 'axios';
+import { pickRequestFields } from '../utils/requestBody';
+
+type MangaInput = Pick<IManga,
+    'title' | 'volume' | 'author' | 'genre' | 'isbn' | 'price' | 'rentalPrice' | 'stock'
+    | 'coverImage' | 'description' | 'publishedYear' | 'status' | 'malScore' | 'malId'
+>;
+
+const mangaFields: readonly (keyof MangaInput)[] = [
+    'title', 'volume', 'author', 'genre', 'isbn', 'price', 'rentalPrice', 'stock',
+    'coverImage', 'description', 'publishedYear', 'status', 'malScore', 'malId'
+] as const;
 
 // Get all mangas
 export const getMangas = async (req: Request, res: Response) => {
     try {
         const mangas = await Manga.find().sort({ createdAt: -1 });
         res.json(mangas);
-    } catch (error: any) {
-        res.status(500).json({ message: error.message });
+    } catch (error: unknown) {
+        console.error('Error fetching mangas:', error);
+        res.status(500).json({ message: 'Error fetching mangas' });
     }
 };
 
 // Get single manga
 export const getManga = async (req: Request, res: Response) => {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+        res.status(400).json({ message: 'Invalid manga id' });
+        return;
+    }
+
     try {
         const manga = await Manga.findById(req.params.id);
         if (!manga) return res.status(404).json({ message: 'Manga not found' });
         res.json(manga);
-    } catch (error: any) {
-        res.status(500).json({ message: error.message });
+    } catch (error: unknown) {
+        console.error('Error fetching manga:', error);
+        res.status(500).json({ message: 'Error fetching manga' });
     }
 };
 
 // Create manga
 export const createManga = async (req: Request, res: Response) => {
+    const mangaData = pickRequestFields<MangaInput>(req.body, mangaFields);
+    if (!mangaData) {
+        res.status(400).json({ message: 'A manga object is required' });
+        return;
+    }
+
     try {
-        const newManga = new Manga(req.body);
-        const savedManga = await newManga.save();
-        res.status(201).json(savedManga);
-    } catch (error: any) {
-        res.status(400).json({ message: error.message });
+        const manga = await Manga.create(mangaData);
+        res.status(201).json(manga);
+    } catch (error: unknown) {
+        if (error instanceof mongoose.Error.ValidationError) {
+            res.status(400).json({ message: error.message });
+            return;
+        }
+        console.error('Error creating manga:', error);
+        res.status(500).json({ message: 'Error creating manga' });
     }
 };
 
 // Update manga
 export const updateManga = async (req: Request, res: Response) => {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+        res.status(400).json({ message: 'Invalid manga id' });
+        return;
+    }
+
+    const mangaData = pickRequestFields<MangaInput>(req.body, mangaFields);
+    if (!mangaData) {
+        res.status(400).json({ message: 'No supported manga fields were provided' });
+        return;
+    }
+
     try {
-        const updatedManga = await Manga.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const updatedManga = await Manga.findByIdAndUpdate(
+            req.params.id,
+            { $set: mangaData },
+            { new: true, runValidators: true }
+        );
         if (!updatedManga) return res.status(404).json({ message: 'Manga not found' });
         res.json(updatedManga);
-    } catch (error: any) {
-        res.status(400).json({ message: error.message });
+    } catch (error: unknown) {
+        if (error instanceof mongoose.Error.ValidationError) {
+            res.status(400).json({ message: error.message });
+            return;
+        }
+        console.error('Error updating manga:', error);
+        res.status(500).json({ message: 'Error updating manga' });
     }
 };
 
 // Delete manga
 export const deleteManga = async (req: Request, res: Response) => {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+        res.status(400).json({ message: 'Invalid manga id' });
+        return;
+    }
+
     try {
+        if (await Rental.exists({ manga: req.params.id })) {
+            res.status(409).json({ message: 'Cannot delete a manga with rental history' });
+            return;
+        }
+
         const deletedManga = await Manga.findByIdAndDelete(req.params.id);
         if (!deletedManga) return res.status(404).json({ message: 'Manga not found' });
         res.json({ message: 'Manga deleted successfully' });
-    } catch (error: any) {
-        res.status(500).json({ message: error.message });
+    } catch (error: unknown) {
+        console.error('Error deleting manga:', error);
+        res.status(500).json({ message: 'Error deleting manga' });
     }
 };
 
@@ -61,13 +122,18 @@ export const searchMangas = async (req: Request, res: Response) => {
     try {
         const { q } = req.query;
         if (!q) return getMangas(req, res);
+        if (typeof q !== 'string' || q.trim().length > 200) {
+            res.status(400).json({ message: 'Query parameter "q" must be a string of at most 200 characters' });
+            return;
+        }
 
         const mangas = await Manga.find({
-            $text: { $search: q as string }
+            $text: { $search: q.trim() }
         });
         res.json(mangas);
-    } catch (error: any) {
-        res.status(500).json({ message: error.message });
+    } catch (error: unknown) {
+        console.error('Error searching mangas:', error);
+        res.status(500).json({ message: 'Error searching mangas' });
     }
 };
 
@@ -77,7 +143,14 @@ export const searchRemoteMangas = async (req: Request, res: Response) => {
         const { q } = req.query;
         if (!q) return res.status(400).json({ message: 'Query parameter "q" is required' });
 
-        const response = await axios.get(`https://api.jikan.moe/v4/manga?q=${q}&limit=5`);
+        if (typeof q !== 'string' || q.trim().length > 200) {
+            return res.status(400).json({ message: 'Query parameter "q" must be a string of at most 200 characters' });
+        }
+
+        const response = await axios.get('https://api.jikan.moe/v4/manga', {
+            params: { q: q.trim(), limit: 5 },
+            timeout: 10_000
+        });
 
         // Transform Jikan data to our format
         const mangas = response.data.data.map((item: any) => {

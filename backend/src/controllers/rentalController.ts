@@ -1,94 +1,191 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import Rental from '../models/Rental';
 import Customer from '../models/Customer';
 import Manga from '../models/Manga';
+import { getErrorMessage } from '../utils/requestBody';
 
-// Get all rentals
-export const getRentals = async (req: Request, res: Response) => {
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+export const getRentals = async (_req: Request, res: Response) => {
     try {
+        await Rental.updateMany(
+            { status: 'ACTIVE', dueDate: { $lt: new Date() } },
+            { $set: { status: 'LATE' } }
+        );
+
         const rentals = await Rental.find()
             .populate('customer', 'firstName lastName email')
             .populate('manga', 'title volume coverImage')
             .sort({ createdAt: -1 });
         res.json(rentals);
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching rentals', error });
+    } catch (error: unknown) {
+        console.error('Error fetching rentals:', error);
+        res.status(500).json({ message: 'Error fetching rentals' });
     }
 };
 
-// Create rental
 export const createRental = async (req: Request, res: Response) => {
+    const body: unknown = req.body;
+    if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+        res.status(400).json({ message: 'A rental object is required' });
+        return;
+    }
+
+    const input = body as Record<string, unknown>;
+    const { customerId, mangaId, dueDate, isPaid } = input;
+
+    if (typeof customerId !== 'string' || !mongoose.isValidObjectId(customerId)
+        || typeof mangaId !== 'string' || !mongoose.isValidObjectId(mangaId)) {
+        res.status(400).json({ message: 'Valid customerId and mangaId are required' });
+        return;
+    }
+
+    if (typeof dueDate !== 'string' && !(dueDate instanceof Date)) {
+        res.status(400).json({ message: 'A valid dueDate is required' });
+        return;
+    }
+
+    const parsedDueDate = new Date(dueDate);
+    if (Number.isNaN(parsedDueDate.getTime()) || parsedDueDate <= new Date()) {
+        res.status(400).json({ message: 'dueDate must be a valid future date' });
+        return;
+    }
+
+    if (isPaid !== undefined && typeof isPaid !== 'boolean') {
+        res.status(400).json({ message: 'isPaid must be a boolean' });
+        return;
+    }
+
+    let stockReserved = false;
     try {
-        const { customerId, mangaId, dueDate, isPaid } = req.body;
-
-        const customer = await Customer.findById(customerId);
-        if (!customer) return res.status(404).json({ message: 'Customer not found' });
-
-        const manga = await Manga.findById(mangaId);
-        if (!manga) return res.status(404).json({ message: 'Manga not found' });
-
-        if (manga.stock <= 0) {
-            return res.status(400).json({ message: 'Manga is out of stock' });
+        const customer = await Customer.findOne({ _id: customerId, isActive: true }).select('_id');
+        if (!customer) {
+            const customerExists = await Customer.exists({ _id: customerId });
+            res.status(customerExists ? 409 : 404).json({
+                message: customerExists ? 'Customer is inactive' : 'Customer not found'
+            });
+            return;
         }
 
-        const rental = new Rental({
+        const manga = await Manga.findOneAndUpdate(
+            { _id: mangaId, stock: { $gt: 0 } },
+            { $inc: { stock: -1 } },
+            { new: true }
+        );
+        if (!manga) {
+            const mangaExists = await Manga.exists({ _id: mangaId });
+            res.status(mangaExists ? 409 : 404).json({
+                message: mangaExists ? 'Manga is out of stock' : 'Manga not found'
+            });
+            return;
+        }
+        stockReserved = true;
+
+        const rentalDays = Math.max(1, Math.ceil((parsedDueDate.getTime() - Date.now()) / DAY_IN_MS));
+        const rental = await Rental.create({
             customer: customerId,
             manga: mangaId,
-            dueDate,
-            cost: manga.rentalPrice,
-            isPaid: isPaid || false
+            dueDate: parsedDueDate,
+            cost: manga.rentalPrice * rentalDays,
+            isPaid: isPaid === true
         });
 
-        await rental.save();
-
-        // Decrease stock
-        manga.stock -= 1;
-        await manga.save();
-
         res.status(201).json(rental);
-    } catch (error) {
-        res.status(400).json({ message: 'Error creating rental', error });
+    } catch (error: unknown) {
+        if (stockReserved) {
+            try {
+                await Manga.updateOne({ _id: mangaId }, { $inc: { stock: 1 } });
+            } catch (rollbackError: unknown) {
+                console.error('Failed to restore stock after rental creation failed:', rollbackError);
+            }
+        }
+
+        if (error instanceof mongoose.Error.ValidationError) {
+            res.status(400).json({ message: error.message });
+            return;
+        }
+
+        console.error('Error creating rental:', error);
+        res.status(500).json({ message: 'Error creating rental' });
     }
 };
 
-// Return rental
 export const returnRental = async (req: Request, res: Response) => {
-    try {
-        const rental = await Rental.findById(req.params.id);
-        if (!rental) return res.status(404).json({ message: 'Rental not found' });
+    if (!mongoose.isValidObjectId(req.params.id)) {
+        res.status(400).json({ message: 'Invalid rental id' });
+        return;
+    }
 
-        if (rental.status === 'RETURNED') {
-            return res.status(400).json({ message: 'Rental already returned' });
+    try {
+        const currentRental = await Rental.findById(req.params.id);
+        if (!currentRental) {
+            res.status(404).json({ message: 'Rental not found' });
+            return;
+        }
+        if (currentRental.status === 'RETURNED') {
+            res.status(409).json({ message: 'Rental already returned' });
+            return;
         }
 
-        rental.status = 'RETURNED';
-        rental.returnDate = new Date();
-        await rental.save();
+        const returnedAt = new Date();
+        const rental = await Rental.findOneAndUpdate(
+            { _id: currentRental._id, status: currentRental.status },
+            { $set: { status: 'RETURNED', returnDate: returnedAt } },
+            { new: true, runValidators: true }
+        );
+        if (!rental) {
+            res.status(409).json({ message: 'Rental status changed; refresh and try again' });
+            return;
+        }
 
-        // Increase stock
-        const manga = await Manga.findById(rental.manga);
-        if (manga) {
-            manga.stock += 1;
-            await manga.save();
+        try {
+            const stockUpdate = await Manga.updateOne({ _id: rental.manga }, { $inc: { stock: 1 } });
+            if (stockUpdate.matchedCount === 0) {
+                throw new Error('The manga inventory item no longer exists');
+            }
+        } catch (stockError: unknown) {
+            await Rental.updateOne(
+                { _id: rental._id, status: 'RETURNED', returnDate: returnedAt },
+                { $set: { status: currentRental.status }, $unset: { returnDate: 1 } }
+            );
+            console.error('Error restoring stock on rental return:', stockError);
+            res.status(409).json({ message: 'Could not restore stock; rental return was rolled back' });
+            return;
         }
 
         res.json(rental);
-    } catch (error) {
-        res.status(500).json({ message: 'Error returning rental', error });
+    } catch (error: unknown) {
+        console.error('Error returning rental:', error);
+        res.status(500).json({ message: 'Error returning rental' });
     }
 };
 
-// Toggle payment status
 export const togglePayment = async (req: Request, res: Response) => {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+        res.status(400).json({ message: 'Invalid rental id' });
+        return;
+    }
+
     try {
-        const rental = await Rental.findById(req.params.id);
-        if (!rental) return res.status(404).json({ message: 'Rental not found' });
+        const currentRental = await Rental.findById(req.params.id).select('isPaid');
+        if (!currentRental) {
+            res.status(404).json({ message: 'Rental not found' });
+            return;
+        }
 
-        rental.isPaid = !rental.isPaid;
-        await rental.save();
-
+        const rental = await Rental.findOneAndUpdate(
+            { _id: req.params.id, isPaid: currentRental.isPaid },
+            { $set: { isPaid: !currentRental.isPaid } },
+            { new: true }
+        );
+        if (!rental) {
+            res.status(409).json({ message: 'Payment status changed; refresh and try again' });
+            return;
+        }
         res.json(rental);
-    } catch (error) {
-        res.status(500).json({ message: 'Error updating payment status', error });
+    } catch (error: unknown) {
+        console.error(getErrorMessage(error));
+        res.status(500).json({ message: 'Error updating payment status' });
     }
 };

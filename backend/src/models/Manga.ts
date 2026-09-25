@@ -19,19 +19,19 @@ export interface IManga extends Document {
 }
 
 const MangaSchema: Schema = new Schema({
-    title: { type: String, required: true },
-    volume: { type: Number, required: true, default: 1 },
-    author: { type: String, required: true },
-    genre: { type: String, required: true },
+    title: { type: String, required: true, trim: true, maxlength: 200 },
+    volume: { type: Number, required: true, default: 1, min: 1 },
+    author: { type: String, required: true, trim: true, maxlength: 200 },
+    genre: { type: String, required: true, trim: true, maxlength: 200 },
     isbn: { type: String },
-    price: { type: Number, required: true },
-    rentalPrice: { type: Number, required: true },
-    stock: { type: Number, required: true, default: 0 },
-    coverImage: { type: String },
-    description: { type: String },
-    publishedYear: { type: Number },
+    price: { type: Number, required: true, min: 0 },
+    rentalPrice: { type: Number, required: true, min: 0 },
+    stock: { type: Number, required: true, default: 0, min: 0 },
+    coverImage: { type: String, maxlength: 2048 },
+    description: { type: String, maxlength: 10000 },
+    publishedYear: { type: Number, min: 1800, max: 2200 },
     status: { type: String }, // Publication status
-    malScore: { type: Number }, // MAL score
+    malScore: { type: Number, min: 0, max: 10 }, // MAL score
     malId: { type: String }, // MAL ID
     createdAt: { type: Date, default: Date.now }
 });

@@ -9,6 +9,8 @@ export interface IRental extends Document {
     status: 'ACTIVE' | 'RETURNED' | 'LATE';
     cost: number;
     isPaid: boolean;
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 const RentalSchema: Schema = new Schema({
@@ -22,8 +24,11 @@ const RentalSchema: Schema = new Schema({
         enum: ['ACTIVE', 'RETURNED', 'LATE'],
         default: 'ACTIVE'
     },
-    cost: { type: Number, required: true },
+    cost: { type: Number, required: true, min: 0 },
     isPaid: { type: Boolean, default: false }
-});
+}, { timestamps: true });
+
+RentalSchema.index({ status: 1, dueDate: 1 });
+RentalSchema.index({ startDate: -1, manga: 1 });
 
 export default mongoose.model<IRental>('Rental', RentalSchema);

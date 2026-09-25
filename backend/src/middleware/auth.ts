@@ -11,7 +11,7 @@ interface AuthTokenPayload {
 export const requireAuth = (req: Request, res: Response, next: NextFunction): void => {
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
-        res.status(500).json({ message: 'JWT_SECRET is not configured' });
+        res.status(500).json({ message: 'Authentication is not configured' });
         return;
     }
 
@@ -21,13 +21,21 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction): vo
         return;
     }
 
-    const token = authHeader.slice('Bearer '.length).trim();
-
     try {
-        const payload = jwt.verify(token, jwtSecret) as AuthTokenPayload;
-        req.user = payload;
+        const payload = jwt.verify(
+            authHeader.slice('Bearer '.length).trim(),
+            jwtSecret,
+            { algorithms: ['HS256'] }
+        );
+
+        if (typeof payload === 'string' || typeof payload.sub !== 'string' || payload.role !== 'admin') {
+            res.status(401).json({ message: 'Invalid or expired token' });
+            return;
+        }
+
+        req.user = { sub: payload.sub, role: 'admin' } satisfies AuthTokenPayload;
         next();
-    } catch (error) {
+    } catch {
         res.status(401).json({ message: 'Invalid or expired token' });
     }
 };
@@ -47,4 +55,3 @@ export const requireRole = (role: UserRole) => {
         next();
     };
 };
-
