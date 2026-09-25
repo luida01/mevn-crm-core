@@ -15,6 +15,7 @@ export interface IManga extends Document {
     status?: string; // Publication status: "Finished", "Publishing", etc.
     malScore?: number; // MAL score (0-10)
     malId?: string; // MAL ID for reference
+    mangaDexId?: string; // MangaDex series ID for volume lookups
     createdAt: Date;
 }
 
@@ -33,6 +34,7 @@ const MangaSchema: Schema = new Schema({
     status: { type: String }, // Publication status
     malScore: { type: Number, min: 0, max: 10 }, // MAL score
     malId: { type: String }, // MAL ID
+    mangaDexId: { type: String, trim: true, maxlength: 36 },
     createdAt: { type: Date, default: Date.now }
 });
 

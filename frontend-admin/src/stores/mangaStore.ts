@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import api from '../services/api';
 import axios from 'axios';
-import type { Manga, MangaInput, RemoteMangaResult } from '../types/Manga';
+import type { Manga, MangaInput, MangaVolumeSearchResponse, RemoteMangaResult } from '../types/Manga';
 
 export const useMangaStore = defineStore('manga', {
     state: () => ({
@@ -138,10 +138,24 @@ export const useMangaStore = defineStore('manga', {
                 this.loading = false;
             }
         },
-        async fetchCover(title: string, volume: number, author?: string, malId?: string) {
+        async searchMangaVolumes(criteria: { title: string; author?: string; malId?: string; mangaDexId?: string }): Promise<MangaVolumeSearchResponse | null> {
+            this.error = null;
+            try {
+                const response = await api.get<MangaVolumeSearchResponse>('/mangas/volumes', { params: criteria });
+                return response.data;
+            } catch (err: unknown) {
+                if (axios.isAxiosError<{ message?: string }>(err)) {
+                    this.error = err.response?.data?.message || err.message || 'Error searching manga volumes';
+                } else {
+                    this.error = err instanceof Error ? err.message : 'Error searching manga volumes';
+                }
+                return null;
+            }
+        },
+        async fetchCover(title: string, volume: number, author?: string, malId?: string, mangaDexId?: string) {
             try {
                 const response = await api.get('/mangas/cover', {
-                    params: { title, volume, author, malId },
+                    params: { title, volume, author, malId, mangaDexId },
                     paramsSerializer: {
                         encode: (value: string) => encodeURIComponent(value)
                     }

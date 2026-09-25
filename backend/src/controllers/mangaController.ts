@@ -47,6 +47,29 @@ interface MangaDexSearchResponse {
     data: MangaDexSearchResult[];
 }
 
+interface MangaDexCover {
+    attributes: {
+        volume: string | null;
+        fileName: string;
+        locale: string;
+    };
+}
+
+interface MangaDexCoverResponse {
+    data: MangaDexCover[];
+    total: number;
+}
+
+interface MangaDexSingleResponse {
+    data: MangaDexSearchResult;
+}
+
+interface AvailableMangaVolume {
+    volume: number;
+    coverImage: string;
+    locale: string;
+}
+
 const normalizeJikanManga = (item: JikanMangaSearchResult) => {
     let authorName = item.authors?.[0]?.name || 'Unknown';
     if (authorName.includes(', ')) {
@@ -111,12 +134,12 @@ const normalizeMangaDexManga = (item: MangaDexSearchResult) => {
 
 type MangaInput = Pick<IManga,
     'title' | 'volume' | 'author' | 'genre' | 'isbn' | 'price' | 'rentalPrice' | 'stock'
-    | 'coverImage' | 'description' | 'publishedYear' | 'status' | 'malScore' | 'malId'
+    | 'coverImage' | 'description' | 'publishedYear' | 'status' | 'malScore' | 'malId' | 'mangaDexId'
 >;
 
 const mangaFields: readonly (keyof MangaInput)[] = [
     'title', 'volume', 'author', 'genre', 'isbn', 'price', 'rentalPrice', 'stock',
-    'coverImage', 'description', 'publishedYear', 'status', 'malScore', 'malId'
+    'coverImage', 'description', 'publishedYear', 'status', 'malScore', 'malId', 'mangaDexId'
 ] as const;
 
 // Get all mangas
@@ -323,11 +346,165 @@ export const searchRemoteMangas = async (req: Request, res: Response) => {
     }
 };
 
+const volumeCoverCache = new Map<string, { volumes: AvailableMangaVolume[]; expiresAt: number }>();
+const VOLUME_COVER_CACHE_MS = 10 * 60 * 1000;
+
+const getMangaDexVolumeCovers = async (mangaDexId: string, originalLanguage = ''): Promise<AvailableMangaVolume[]> => {
+    const cached = volumeCoverCache.get(mangaDexId);
+    if (cached && cached.expiresAt > Date.now()) return cached.volumes;
+
+    const limit = 100;
+    const maxCovers = 500;
+    let offset = 0;
+    let total = 0;
+    const covers: MangaDexCover[] = [];
+
+    do {
+        const response = await axios.get<MangaDexCoverResponse>('https://api.mangadex.org/cover', {
+            params: {
+                'manga[]': [mangaDexId],
+                limit,
+                offset,
+                'order[volume]': 'asc'
+            },
+            paramsSerializer: (params) => {
+                const parts: string[] = [];
+                for (const [key, value] of Object.entries(params)) {
+                    if (Array.isArray(value)) {
+                        value.forEach((item) => parts.push(`${key}=${encodeURIComponent(String(item))}`));
+                    } else if (value !== undefined && value !== null) {
+                        parts.push(`${key}=${encodeURIComponent(String(value))}`);
+                    }
+                }
+                return parts.join('&');
+            },
+            timeout: 10_000,
+            headers: { 'User-Agent': 'MEVN-CRM/1.0' }
+        });
+
+        covers.push(...response.data.data);
+        total = response.data.total;
+        if (response.data.data.length === 0) break;
+        offset += response.data.data.length;
+    } while (offset < total && offset < maxCovers && offset > 0);
+
+    const preferredLocales = ['es', 'es-la', 'en', originalLanguage].filter(Boolean);
+    const byVolume = new Map<number, AvailableMangaVolume>();
+    for (const cover of covers) {
+        const rawVolume = cover.attributes.volume;
+        if (!rawVolume || !/^\d+(?:\.\d+)?$/.test(rawVolume)) continue;
+
+        const volume = Number(rawVolume);
+        if (!Number.isFinite(volume) || volume < 1 || !cover.attributes.fileName) continue;
+
+        const candidate: AvailableMangaVolume = {
+            volume,
+            coverImage: `https://uploads.mangadex.org/covers/${mangaDexId}/${cover.attributes.fileName}`,
+            locale: cover.attributes.locale
+        };
+        const current = byVolume.get(volume);
+        const candidateRank = preferredLocales.indexOf(candidate.locale);
+        const currentRank = current ? preferredLocales.indexOf(current.locale) : Number.POSITIVE_INFINITY;
+        if (!current || (candidateRank >= 0 && candidateRank < (currentRank < 0 ? Number.POSITIVE_INFINITY : currentRank))) {
+            byVolume.set(volume, candidate);
+        }
+    }
+
+    const volumes = [...byVolume.values()].sort((left, right) => left.volume - right.volume);
+    volumeCoverCache.set(mangaDexId, { volumes, expiresAt: Date.now() + VOLUME_COVER_CACHE_MS });
+    return volumes;
+};
+
+export const getMangaDexVolumes = async (req: Request, res: Response) => {
+    const { mangaDexId, title, author, malId } = req.query;
+    if (mangaDexId !== undefined && (typeof mangaDexId !== 'string' || !/^[\da-f-]{36}$/i.test(mangaDexId))) {
+        return res.status(400).json({ message: 'Invalid MangaDex series id' });
+    }
+    if (!mangaDexId && (typeof title !== 'string' || !title.trim() || title.length > 200)) {
+        return res.status(400).json({ message: 'A title or MangaDex series id is required' });
+    }
+    if (author !== undefined && (typeof author !== 'string' || author.length > 200)) {
+        return res.status(400).json({ message: 'Author must be a string of at most 200 characters' });
+    }
+    if (malId !== undefined && (typeof malId !== 'string' || !/^\d{1,12}$/.test(malId))) {
+        return res.status(400).json({ message: 'Invalid MyAnimeList id' });
+    }
+
+    try {
+        let series: MangaDexSearchResult;
+        if (typeof mangaDexId === 'string') {
+            const response = await axios.get<MangaDexSingleResponse>(`https://api.mangadex.org/manga/${mangaDexId}`, {
+                params: { 'includes[]': ['author'] },
+                timeout: 10_000,
+                headers: { 'User-Agent': 'MEVN-CRM/1.0' }
+            });
+            series = response.data.data;
+        } else {
+            const response = await axios.get<MangaDexSearchResponse>('https://api.mangadex.org/manga', {
+                params: {
+                    title: String(title).trim(),
+                    'includes[]': ['author', 'cover_art'],
+                    limit: 50
+                },
+                paramsSerializer: (params) => {
+                    const parts: string[] = [];
+                    for (const [key, value] of Object.entries(params)) {
+                        if (Array.isArray(value)) {
+                            value.forEach((item) => parts.push(`${key}=${encodeURIComponent(String(item))}`));
+                        } else if (value !== undefined && value !== null) {
+                            parts.push(`${key}=${encodeURIComponent(String(value))}`);
+                        }
+                    }
+                    return parts.join('&');
+                },
+                timeout: 10_000,
+                headers: { 'User-Agent': 'MEVN-CRM/1.0' }
+            });
+
+            const candidates = response.data.data;
+            const malMatch = typeof malId === 'string'
+                ? candidates.find((candidate) => candidate.attributes.links?.mal === malId)
+                : undefined;
+            const titleMatch = candidates.length > 0
+                ? findBestTitleMatch(candidates, String(title), typeof author === 'string' ? author : undefined)
+                : undefined;
+            const selected = malMatch || titleMatch;
+            if (!selected) return res.status(404).json({ message: 'Could not find matching manga series in MangaDex' });
+            series = selected;
+        }
+
+        const volumes = await getMangaDexVolumeCovers(series.id, series.attributes.originalLanguage);
+        const getLocalizedText = (values: Record<string, string> | undefined): string =>
+            values?.en || values?.['en-us'] || values?.['ja-ro'] || values?.ja || (values ? Object.values(values)[0] : '') || '';
+        const seriesTitle = getLocalizedText(series.attributes.title);
+        const seriesAuthor = series.relationships
+            .filter((relationship) => relationship.type === 'author' || relationship.type === 'artist')
+            .map((relationship) => relationship.attributes?.name)
+            .filter((name): name is string => Boolean(name))
+            .join(', ');
+
+        return res.json({
+            mangaDexId: series.id,
+            title: seriesTitle,
+            author: seriesAuthor,
+            volumes
+        });
+    } catch (error: unknown) {
+        const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+        if (status === 404) return res.status(404).json({ message: 'Manga series not found in MangaDex' });
+        console.error(`MangaDex volume lookup failed${status ? ` (HTTP ${status})` : ''}.`);
+        return res.status(503).json({ message: 'Volume information is temporarily unavailable. Please try again shortly.' });
+    }
+};
+
 // Fetch MangaDex cover - VERSIÓN MEJORADA
 export const fetchMangaDexCover = async (req: Request, res: Response) => {
     try {
-        const { title, volume, author, malId } = req.query;
-        if (!title) return res.status(400).json({ message: 'Title is required' });
+        const { title, volume, author, malId, mangaDexId } = req.query;
+        if (typeof title !== 'string' || !title.trim()) return res.status(400).json({ message: 'Title is required' });
+        if (mangaDexId !== undefined && (typeof mangaDexId !== 'string' || !/^[\da-f-]{36}$/i.test(mangaDexId))) {
+            return res.status(400).json({ message: 'Invalid MangaDex series id' });
+        }
 
         console.log('='.repeat(60));
         console.log(`[COVER SEARCH] Title: "${title}"`);
@@ -336,7 +513,18 @@ export const fetchMangaDexCover = async (req: Request, res: Response) => {
         console.log(`[COVER SEARCH] MAL ID: ${malId || 'Not provided'}`);
 
         const targetVolume = String(volume || '1');
+        if (!/^\d+(?:\.\d+)?$/.test(targetVolume) || Number(targetVolume) < 1) {
+            return res.status(400).json({ message: 'Volume must be a positive number' });
+        }
         let selectedManga: any = null;
+
+        if (typeof mangaDexId === 'string') {
+            selectedManga = {
+                id: mangaDexId,
+                attributes: { title: { en: title }, links: {}, originalLanguage: '' },
+                relationships: []
+            };
+        }
 
         // Cliente Axios específico para MangaDex con serializer correcto
         const mangaDexClient = axios.create({
@@ -470,8 +658,8 @@ export const fetchMangaDexCover = async (req: Request, res: Response) => {
 
         // Log del manga seleccionado
         const selectedTitle = Object.values(selectedManga.attributes.title)[0] as string;
-        const selectedAuthor = selectedManga.relationships.find((r: any) => r.type === 'author')?.attributes?.name || 'Unknown';
-        const selectedMalId = selectedManga.attributes.links?.mal || 'N/A';
+        const selectedAuthor = selectedManga.relationships.find((r: any) => r.type === 'author')?.attributes?.name || author || 'Unknown';
+        const selectedMalId = selectedManga.attributes.links?.mal || malId || 'N/A';
         console.log(`\n[SELECTED MANGA]`);
         console.log(`  Title: ${selectedTitle}`);
         console.log(`  Author: ${selectedAuthor}`);
@@ -479,7 +667,8 @@ export const fetchMangaDexCover = async (req: Request, res: Response) => {
         console.log(`  MangaDex ID: ${selectedManga.id}`);
 
         // Buscar el cover del volumen específico
-        const cover = await findVolumeCover(selectedManga.id, targetVolume, selectedManga.attributes.originalLanguage);
+        const cover = (await getMangaDexVolumeCovers(selectedManga.id, selectedManga.attributes.originalLanguage || ''))
+            .find((availableVolume) => availableVolume.volume === Number(targetVolume));
 
         if (!cover) {
             console.warn(`[WARN] Cover for Volume ${targetVolume} not found. Returning without cover.`);
@@ -497,8 +686,7 @@ export const fetchMangaDexCover = async (req: Request, res: Response) => {
             });
         }
 
-        const fileName = cover.attributes.fileName;
-        const imageUrl = `https://uploads.mangadex.org/covers/${selectedManga.id}/${fileName}`;
+        const imageUrl = cover.coverImage;
 
         console.log(`\n[SUCCESS] Cover URL: ${imageUrl}\n`);
         res.json({
@@ -599,74 +787,4 @@ function findBestTitleMatch(mangas: any[], queryTitle: string, queryAuthor?: str
     }
 
     return bestMatch.manga;
-}
-
-// Helper: Busca el cover de un volumen específico
-async function findVolumeCover(mangaId: string, targetVolume: string, originalLanguage: string): Promise<any> {
-    console.log(`\n[COVER SEARCH] Looking for volume ${targetVolume}...`);
-
-    // Helper para buscar por locale
-    const searchByLocale = async (locales: string[] | null) => {
-        let allCovers: any[] = [];
-        let offset = 0;
-        const limit = 100;
-        let total = 0;
-
-        do {
-            const params: any = {
-                'manga[]': [mangaId],
-                limit: limit,
-                offset: offset,
-                'order[volume]': 'asc'
-            };
-            if (locales) params['locales[]'] = locales;
-
-            const res = await axios.get(`https://api.mangadex.org/cover`, {
-                params: params,
-                headers: { 'User-Agent': 'MEVN-CRM/1.0' },
-                paramsSerializer: (params) => {
-                    const parts: string[] = [];
-                    for (const key in params) {
-                        const val = params[key];
-                        if (Array.isArray(val)) {
-                            val.forEach((v: any) => parts.push(`${key}=${encodeURIComponent(v)}`));
-                        } else {
-                            parts.push(`${key}=${encodeURIComponent(val)}`);
-                        }
-                    }
-                    return parts.join('&');
-                }
-            });
-
-            allCovers = allCovers.concat(res.data.data);
-            total = res.data.total;
-            offset += limit;
-
-        } while (offset < total);
-
-        return allCovers.find((c: any) =>
-            c.attributes.volume === targetVolume ||
-            parseFloat(c.attributes.volume) === parseFloat(targetVolume)
-        );
-    };
-
-    // Intentar en orden de prioridad
-    const strategies = [
-        { name: 'English', locales: ['en'] },
-        { name: 'Spanish', locales: ['es', 'es-la'] },
-        { name: 'Original Language', locales: [originalLanguage] },
-        { name: 'Any Language', locales: null }
-    ];
-
-    for (const strategy of strategies) {
-        console.log(`  Trying ${strategy.name}...`);
-        const cover = await searchByLocale(strategy.locales);
-        if (cover) {
-            console.log(`  ✓ Found in ${strategy.name}`);
-            return cover;
-        }
-    }
-
-    console.log(`  ✗ Volume ${targetVolume} not found in any language`);
-    return null;
 }

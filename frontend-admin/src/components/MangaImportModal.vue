@@ -35,6 +35,7 @@ const selectManga = (manga: RemoteMangaResult) => {
     status: manga.status, // Publication status
     malScore: manga.malScore ?? undefined,
     malId: manga.malId ?? undefined,
+    mangaDexId: manga.mangaDexId,
     price: 0,
     rentalPrice: 0,
     stock: 0

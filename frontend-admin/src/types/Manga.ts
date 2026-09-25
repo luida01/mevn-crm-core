@@ -14,6 +14,7 @@ export interface Manga {
     status?: string;
     malScore?: number;
     malId?: string;
+    mangaDexId?: string;
     createdAt?: string;
 }
 
@@ -32,6 +33,7 @@ export interface MangaInput {
     status?: string;
     malScore?: number;
     malId?: string;
+    mangaDexId?: string;
 }
 
 export interface RemoteMangaResult {
@@ -47,4 +49,17 @@ export interface RemoteMangaResult {
     malId: string | null;
     mangaDexId?: string;
     provider: 'MyAnimeList' | 'MangaDex';
+}
+
+export interface AvailableMangaVolume {
+    volume: number;
+    coverImage: string;
+    locale: string;
+}
+
+export interface MangaVolumeSearchResponse {
+    mangaDexId: string;
+    title: string;
+    author: string;
+    volumes: AvailableMangaVolume[];
 }

@@ -7,6 +7,7 @@ Revisión de la aplicación MEVN (backend Express/Mongoose, tienda Vue, panel Vu
 - API: validación/normalización de campos, validadores de Mongoose, límites de entrada, protección de rutas administrativas con JWT HS256, limitación de intentos de login, CORS por lista permitida, Helmet y límite de JSON.
 - Alquileres: control de identificadores/fechas, reservas de stock con actualización condicional y compensaciones ante errores, devolución y pago idempotentes, cálculo del estado vencido y prevención de borrado de mangas/clientes con historial.
 - Catálogo: límites de resultados, expresiones de autor escapadas y errores que no exponen mensajes internos.
+- Importación: respaldo de Jikan con MangaDex; el formulario puede buscar las portadas de los volúmenes disponibles, prioriza portadas en español y conserva el identificador de MangaDex para consultas posteriores. Los resultados dependen de que MangaDex tenga registrada la portada de ese volumen.
 - Datos demo: seed idempotente por upsert que ya no borra colecciones; no se ejecuta automáticamente.
 - Configuración: secretos de desarrollo locales en `.env` (ignorado por Git), plantilla `.env.example`, Compose con puertos locales, persistencia Mongo, healthchecks y dependencias por salud.
 - Contenedores: `npm ci`, scripts de compilación/tipado y documentación de ejecución actualizada.
