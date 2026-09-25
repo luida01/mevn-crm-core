@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
-import { computed, watch, nextTick } from 'vue';
+import { watch, nextTick } from 'vue';
 
 const route = useRoute();
 

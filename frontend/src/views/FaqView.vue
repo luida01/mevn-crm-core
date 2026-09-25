@@ -1,141 +1,559 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <!-- Scroll anchor -->
-    <div ref="scrollAnchor" style="position: absolute; top: 0;"></div>
-    <!-- Header/Navbar -->
-    <nav class="bg-white dark:bg-gray-800 shadow-md sticky top-0 z-50">
-      <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-        <div class="flex items-center gap-3">
-          <img src="/logo.png" alt="MangaGo" class="h-12">
-          <span class="text-2xl font-bold text-gray-900 dark:text-white">MangaGo</span>
+  <div id="top" class="storefront faq-page min-h-screen">
+    <ShopHeader />
+
+    <main>
+      <section class="faq-hero" aria-labelledby="faq-title">
+        <div class="faq-hero__copy">
+          <p class="faq-eyebrow"><span aria-hidden="true">✳</span> Centro de ayuda</p>
+          <h1 id="faq-title">Respuestas para<br><em>seguir leyendo.</em></h1>
+          <p class="faq-hero__intro">
+            Encuentra en un momento la información sobre alquileres, entregas y devoluciones.
+          </p>
+          <a class="faq-hero__link" href="#preguntas">Ver preguntas frecuentes <span aria-hidden="true">↓</span></a>
         </div>
-        <div class="flex gap-6 items-center">
-          <router-link to="/" class="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Shop</router-link>
-          <router-link to="/admin" class="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Admin</router-link>
-        </div>
-      </div>
-    </nav>
 
-    <div class="container mx-auto px-4 py-12">
-      <!-- Breadcrumb -->
-      <nav class="mb-8">
-        <ol class="flex items-center space-x-2 text-sm">
-          <li><router-link to="/" class="text-indigo-600 hover:text-indigo-800">Home</router-link></li>
-          <li class="text-gray-500">/</li>
-          <li class="text-gray-900 dark:text-white font-medium">Frequently Asked Questions</li>
-        </ol>
-      </nav>
+        <aside class="faq-shortcuts" aria-label="Accesos a información de la tienda">
+          <div class="faq-shortcuts__mark" aria-hidden="true">?</div>
+          <p class="faq-shortcuts__eyebrow">Información útil</p>
+          <h2>¿Buscas todos los detalles?</h2>
+          <p>Consulta las condiciones completas antes de alquilar o comprar.</p>
+          <router-link to="/rental-policies">Políticas de alquiler <span aria-hidden="true">↗</span></router-link>
+          <router-link to="/return-policy">Devoluciones y reembolsos <span aria-hidden="true">↗</span></router-link>
+          <router-link to="/terms">Términos y condiciones <span aria-hidden="true">↗</span></router-link>
+        </aside>
+      </section>
 
-      <!-- Page Title -->
-      <div class="text-center mb-12">
-        <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4">❓ Frequently Asked Questions</h1>
-        <p class="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-          Find answers to the most common questions about our manga rental and sales services.
-        </p>
-      </div>
-
-      <!-- FAQ Accordion -->
-      <div class="max-w-3xl mx-auto space-y-4">
-        <div 
-          v-for="(faq, index) in faqs" 
-          :key="index"
-          class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden"
-        >
-          <button 
-            @click="toggleFaq(index)"
-            class="w-full px-6 py-5 flex justify-between items-center text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          >
-            <span class="font-semibold text-gray-900 dark:text-white">{{ faq.question }}</span>
-            <svg 
-              :class="{ 'rotate-180': openFaqIndex === index }"
-              class="w-5 h-5 text-indigo-600 transition-transform duration-300" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          <div 
-            v-show="openFaqIndex === index"
-            class="px-6 pb-5 text-gray-600 dark:text-gray-400"
-          >
-            <p>{{ faq.answer }}</p>
+      <section id="preguntas" class="faq-main" aria-labelledby="faq-list-title">
+        <div class="faq-main__heading">
+          <div>
+            <p class="faq-eyebrow">A un paso de tu próxima historia</p>
+            <h2 id="faq-list-title">Preguntas frecuentes</h2>
           </div>
+          <p>Busca un tema o abre una pregunta para ver su respuesta.</p>
         </div>
-      </div>
 
-      <!-- Contact CTA -->
-      <div class="mt-16 text-center bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 text-white">
-        <h2 class="text-2xl font-bold mb-4">Didn't find what you were looking for?</h2>
-        <p class="mb-6 opacity-90">Our support team is available to help you.</p>
-        <a href="mailto:info@mangago.com" class="inline-block bg-white text-indigo-600 font-bold px-8 py-3 rounded-lg hover:bg-gray-100 transition-colors">
-          Contact Us
-        </a>
-      </div>
-    </div>
+        <label class="faq-search">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.7"/><path d="m16 16 4.2 4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <span class="faq-search__sr-only">Buscar en preguntas frecuentes</span>
+          <input v-model="searchQuery" type="search" placeholder="Prueba: alquiler, pago o devolución" autocomplete="off">
+          <span v-if="searchQuery" class="faq-search__count" aria-live="polite">{{ filteredFaqs.length }} {{ filteredFaqs.length === 1 ? 'resultado' : 'resultados' }}</span>
+        </label>
+
+        <div v-if="filteredFaqs.length" class="faq-list">
+          <article
+            v-for="(faq, index) in filteredFaqs"
+            :key="faq.id"
+            class="faq-item"
+            :class="{ 'faq-item--open': openFaqId === faq.id }"
+          >
+            <h3 class="faq-item__heading">
+              <button
+                :id="`faq-question-${faq.id}`"
+                class="faq-question"
+                type="button"
+                :aria-expanded="openFaqId === faq.id"
+                :aria-controls="`faq-answer-${faq.id}`"
+                @click="toggleFaq(faq.id)"
+              >
+                <span class="faq-question__number">{{ String(index + 1).padStart(2, '0') }}</span>
+                <span class="faq-question__text">{{ faq.question }}</span>
+                <span class="faq-question__toggle" aria-hidden="true">{{ openFaqId === faq.id ? '−' : '+' }}</span>
+              </button>
+            </h3>
+            <Transition name="faq-answer">
+              <div
+                v-if="openFaqId === faq.id"
+                :id="`faq-answer-${faq.id}`"
+                class="faq-answer"
+                role="region"
+                :aria-labelledby="`faq-question-${faq.id}`"
+              >
+                <p>{{ faq.answer }}</p>
+                <div v-if="faq.links?.length" class="faq-answer__links">
+                  <router-link v-for="link in faq.links" :key="link.to" :to="link.to">{{ link.label }} <span aria-hidden="true">↗</span></router-link>
+                </div>
+              </div>
+            </Transition>
+          </article>
+        </div>
+
+        <div v-else class="faq-empty" role="status">
+          <span aria-hidden="true">⌕</span>
+          <h3>No encontramos esa pregunta</h3>
+          <p>Prueba con otra palabra, como «alquiler», «entrega» o «pago».</p>
+          <button type="button" @click="searchQuery = ''">Borrar búsqueda</button>
+        </div>
+      </section>
+    </main>
 
     <ShopFooter />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { computed, ref } from 'vue';
 import ShopFooter from '../components/ShopFooter.vue';
+import ShopHeader from '../components/ShopHeader.vue';
 
-const scrollAnchor = ref<HTMLElement | null>(null);
-
-// Scroll to top when page loads
-onMounted(() => {
-  scrollAnchor.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-});
-
-const openFaqIndex = ref<number | null>(null);
-
-const toggleFaq = (index: number) => {
-  openFaqIndex.value = openFaqIndex.value === index ? null : index;
-};
+const searchQuery = ref('');
+const openFaqId = ref<string | null>(null);
 
 const faqs = [
   {
-    question: 'How does the manga rental service work?',
-    answer: 'Our rental service allows you to enjoy your favorite manga for a set period. Select the manga you want, choose the rental period (3, 7, or 14 days), and receive it at your doorstep. At the end of the period, you can return it or extend the rental.'
+    id: 'periodos',
+    question: '¿Qué periodos de alquiler están disponibles?',
+    answer: 'Las opciones indicadas son de 3, 7 o 14 días. El precio depende del título y de la duración elegida; las condiciones y posibles descuentos se detallan en las políticas de alquiler.',
+    links: [{ label: 'Ver políticas de alquiler', to: '/rental-policies' }]
   },
   {
-    question: 'How long can I rent a manga?',
-    answer: 'We offer flexible rental periods: 3 days, 7 days, or 14 days. The price varies depending on the selected duration. You can also extend your rental from your account before it expires.'
+    id: 'costos',
+    question: '¿Hay cargos adicionales al alquilar?',
+    answer: 'Las políticas publicadas indican un depósito reembolsable y un cargo por devolución tardía de $2.00 por día. Revisa el importe y las condiciones aplicables antes de confirmar tu alquiler.',
+    links: [{ label: 'Consultar precios y cargos', to: '/rental-policies' }]
   },
   {
-    question: 'What happens if I return the manga late?',
-    answer: 'If you return the manga after the due date, an additional charge of $2.00 per day of delay will apply. We will send you email reminders before the due date to avoid additional charges.'
+    id: 'extension',
+    question: '¿Puedo extender un alquiler?',
+    answer: 'La extensión debe solicitarse antes de la fecha de devolución y depende de que el manga no esté reservado por otra persona. Las políticas describen también los límites y el costo de la extensión.',
+    links: [{ label: 'Ver condiciones de extensión', to: '/rental-policies' }]
   },
   {
-    question: 'In what condition should I return the manga?',
-    answer: 'The manga must be returned in the same condition you received it. We accept normal wear from use, but significant damage such as torn pages, stains, or water damage may result in additional charges.'
+    id: 'estado',
+    question: '¿En qué estado debo devolver el manga?',
+    answer: 'Devuélvelo en las condiciones en que lo recibiste. El desgaste normal de lectura se distingue de daños como páginas rotas, manchas o humedad, que pueden generar cargos según las políticas.',
+    links: [{ label: 'Leer política de devoluciones', to: '/return-policy' }]
   },
   {
-    question: 'Can I buy a manga that I have rented?',
-    answer: 'Yes! If you fall in love with a manga you have rented, you can buy it. The purchase price will be reduced by 50% of the amount you already paid for the rental.'
+    id: 'entrega',
+    question: '¿Cómo funcionan la entrega y la recogida?',
+    answer: 'La información publicada contempla entrega en la ciudad capital, envío gratuito según el importe del pedido y opciones de recogida. La cobertura, disponibilidad y costos pueden variar por zona; revisa las condiciones completas antes de pedir.',
+    links: [{ label: 'Ver información de alquiler y entrega', to: '/rental-policies' }]
   },
   {
-    question: 'Do you ship nationwide?',
-    answer: 'Yes, we ship throughout the country. Shipping within the capital city is free for orders over $25. For other areas, the shipping cost is calculated at checkout.'
+    id: 'pago',
+    question: '¿Qué medios de pago se aceptan?',
+    answer: 'Los términos de la tienda enumeran tarjetas Visa, Mastercard y American Express, transferencias bancarias y pago contra entrega en zonas seleccionadas. Confirma las opciones disponibles para tu pedido al momento de pagar.',
+    links: [{ label: 'Consultar términos y condiciones', to: '/terms' }]
   },
   {
-    question: 'What payment methods do you accept?',
-    answer: 'We accept credit and debit cards (Visa, Mastercard, American Express), bank transfers, and cash on delivery in selected areas. We will soon integrate more digital payment options.'
-  },
-  {
-    question: 'How can I view my rental history?',
-    answer: 'You can view your complete rental history by logging into your account and accessing the "My Rentals" section. There you will find all your active, past rentals and any pending charges.'
-  },
-  {
-    question: 'Do you offer discounts for frequent rentals?',
-    answer: 'Yes! We have a loyalty program where you earn points for each rental. These points can be redeemed for discounts on future rentals or purchases. We also offer special promotions for frequent members.'
-  },
-  {
-    question: 'Can I rent complete series?',
-    answer: 'Absolutely. We offer special packages for complete series with discounts of up to 30%. You can select the "Rent Complete Series" option on the page of any manga that belongs to a series.'
+    id: 'politicas',
+    question: '¿Dónde encuentro todas las condiciones?',
+    answer: 'Aquí tienes las páginas con el detalle de cada servicio. Si una condición no está clara, revisa la información correspondiente al producto antes de continuar.',
+    links: [
+      { label: 'Alquileres', to: '/rental-policies' },
+      { label: 'Devoluciones', to: '/return-policy' },
+      { label: 'Términos', to: '/terms' }
+    ]
   }
 ];
+
+const filteredFaqs = computed(() => {
+  const query = searchQuery.value.trim().toLocaleLowerCase();
+  if (!query) return faqs;
+  return faqs.filter((faq) => `${faq.question} ${faq.answer}`.toLocaleLowerCase().includes(query));
+});
+
+const toggleFaq = (id: string) => {
+  openFaqId.value = openFaqId.value === id ? null : id;
+};
 </script>
+
+<style scoped>
+.faq-page {
+  --faq-content-width: 1080px;
+}
+
+.faq-hero {
+  position: relative;
+  display: grid;
+  max-width: var(--faq-content-width);
+  min-height: 420px;
+  grid-template-columns: minmax(0, 1.3fr) minmax(290px, 0.7fr);
+  align-items: center;
+  gap: clamp(36px, 8vw, 110px);
+  margin-inline: auto;
+  padding: 68px 32px 78px;
+}
+
+.faq-hero::before {
+  position: absolute;
+  z-index: 0;
+  top: 36px;
+  left: -150px;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(229, 182, 81, 0.23), rgba(229, 182, 81, 0) 70%);
+  content: '';
+  pointer-events: none;
+}
+
+.faq-hero__copy,
+.faq-shortcuts {
+  position: relative;
+  z-index: 1;
+}
+
+.faq-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 15px;
+  color: var(--shop-green);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.faq-eyebrow span {
+  color: var(--shop-accent);
+  font-size: 1.2rem;
+}
+
+.faq-hero h1 {
+  margin: 0;
+  color: var(--shop-ink);
+  font-size: clamp(3.15rem, 6vw, 5.1rem);
+  font-weight: 800;
+  line-height: 0.98;
+}
+
+.faq-hero h1 em {
+  color: var(--shop-accent);
+  font-weight: 600;
+}
+
+.faq-hero__intro {
+  max-width: 490px;
+  margin: 22px 0 20px;
+  color: #686a61;
+  font-size: 1.03rem;
+  line-height: 1.75;
+}
+
+.faq-hero__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--shop-ink);
+  font-size: 0.9rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.faq-hero__link span {
+  color: var(--shop-accent);
+  font-size: 1.2rem;
+  transition: transform 160ms ease;
+}
+
+.faq-hero__link:hover span { transform: translateY(3px); }
+
+.faq-shortcuts {
+  overflow: hidden;
+  border: 1px solid rgba(229, 218, 199, 0.82);
+  border-radius: 24px;
+  background: rgba(255, 253, 248, 0.86);
+  padding: 26px 27px 20px;
+  box-shadow: 0 18px 45px rgba(74, 57, 37, 0.07);
+}
+
+.faq-shortcuts__mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 14px;
+  background: #f1e3c6;
+  color: var(--shop-accent);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.55rem;
+  font-weight: 700;
+}
+
+.faq-shortcuts__eyebrow {
+  margin: 19px 0 6px;
+  color: var(--shop-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.faq-shortcuts h2 {
+  margin: 0;
+  color: var(--shop-ink);
+  font-size: 1.55rem;
+  line-height: 1.16;
+}
+
+.faq-shortcuts > p:not(.faq-shortcuts__eyebrow) {
+  margin: 10px 0 13px;
+  color: var(--shop-muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.faq-shortcuts a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--shop-line);
+  padding: 12px 0;
+  color: var(--shop-ink);
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.faq-shortcuts a:hover,
+.faq-answer__links a:hover { color: var(--shop-accent); }
+
+.faq-shortcuts a span,
+.faq-answer__links a span {
+  color: var(--shop-accent);
+}
+
+.faq-main {
+  max-width: 850px;
+  margin: 0 auto;
+  padding: 30px 32px 104px;
+  scroll-margin-top: 100px;
+}
+
+.faq-main__heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 28px;
+  margin-bottom: 25px;
+}
+
+.faq-main__heading .faq-eyebrow { margin-bottom: 8px; }
+
+.faq-main__heading h2 {
+  margin: 0;
+  color: var(--shop-ink);
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  line-height: 1.08;
+}
+
+.faq-main__heading > p {
+  max-width: 250px;
+  margin: 0 0 3px;
+  color: var(--shop-muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.faq-search {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--shop-line);
+  border-radius: 16px;
+  background: var(--shop-surface);
+  padding: 0 17px;
+  box-shadow: 0 7px 22px rgba(74, 57, 37, 0.04);
+}
+
+.faq-search > svg {
+  width: 21px;
+  flex: 0 0 auto;
+  color: var(--shop-green);
+}
+
+.faq-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--shop-ink);
+  font: inherit;
+  font-size: 0.91rem;
+}
+
+.faq-search input::placeholder { color: #99968d; }
+.faq-search input:focus-visible { outline: 0; }
+
+.faq-search__sr-only {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.faq-search__count {
+  flex: 0 0 auto;
+  color: var(--shop-muted);
+  font-size: 0.75rem;
+}
+
+.faq-list {
+  display: grid;
+  gap: 11px;
+  margin-top: 18px;
+}
+
+.faq-item {
+  overflow: hidden;
+  border: 1px solid var(--shop-line);
+  border-radius: 17px;
+  background: var(--shop-surface);
+  transition: border-color 170ms ease, box-shadow 170ms ease;
+}
+
+.faq-item--open {
+  border-color: rgba(195, 75, 49, 0.46);
+  box-shadow: 0 10px 24px rgba(74, 57, 37, 0.06);
+}
+
+.faq-item__heading { margin: 0; }
+
+.faq-question {
+  display: grid;
+  width: 100%;
+  min-height: 76px;
+  grid-template-columns: 42px minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 13px;
+  border: 0;
+  background: transparent;
+  padding: 13px 20px;
+  color: var(--shop-ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.faq-question__number {
+  color: #a39b8d;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 0.92rem;
+}
+
+.faq-question__text {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.35;
+}
+
+.faq-question__toggle {
+  display: grid;
+  width: 35px;
+  height: 35px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f3ecdf;
+  color: var(--shop-green);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 400;
+  transition: color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.faq-item--open .faq-question__toggle {
+  background: var(--shop-accent);
+  color: #fffdf8;
+  transform: rotate(180deg);
+}
+
+.faq-answer {
+  border-top: 1px solid rgba(229, 218, 199, 0.7);
+  margin: 0 20px 0 75px;
+  padding: 16px 8px 21px 0;
+}
+
+.faq-answer p {
+  margin: 0;
+  color: #686a61;
+  font-size: 0.91rem;
+  line-height: 1.8;
+}
+
+.faq-answer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px 19px;
+  margin-top: 13px;
+}
+
+.faq-answer__links a {
+  color: var(--shop-green);
+  font-size: 0.8rem;
+  font-weight: 750;
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.faq-empty {
+  margin-top: 18px;
+  border: 1px dashed #cabda8;
+  border-radius: 18px;
+  padding: 34px 20px;
+  color: var(--shop-muted);
+  text-align: center;
+}
+
+.faq-empty > span { color: var(--shop-accent); font-size: 2rem; }
+.faq-empty h3 { margin: 8px 0; color: var(--shop-ink); font-size: 1.3rem; }
+.faq-empty p { margin: 0 auto 16px; font-size: 0.88rem; }
+.faq-empty button { border: 0; background: none; color: var(--shop-green); cursor: pointer; font: inherit; font-size: 0.86rem; font-weight: 750; }
+
+.faq-answer-enter-active,
+.faq-answer-leave-active {
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.faq-answer-enter-from,
+.faq-answer-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
+}
+
+@media (max-width: 720px) {
+  .faq-hero {
+    min-height: initial;
+    grid-template-columns: 1fr;
+    gap: 34px;
+    padding: 52px 24px 42px;
+  }
+
+  .faq-hero::before { left: -220px; }
+  .faq-shortcuts { max-width: 470px; }
+  .faq-main { padding: 30px 24px 76px; }
+  .faq-main__heading { align-items: start; flex-direction: column; gap: 10px; }
+  .faq-main__heading > p { max-width: 420px; }
+}
+
+@media (max-width: 480px) {
+  .faq-hero { padding-inline: 20px; }
+  .faq-hero h1 { font-size: clamp(2.7rem, 13vw, 3.5rem); }
+  .faq-main { padding-inline: 18px; }
+  .faq-search { gap: 9px; padding-inline: 13px; }
+  .faq-search input { font-size: 0.83rem; }
+  .faq-search__count { font-size: 0.68rem; }
+  .faq-question { min-height: 70px; grid-template-columns: 25px minmax(0, 1fr) 34px; gap: 10px; padding: 12px; }
+  .faq-question__text { font-size: 0.96rem; }
+  .faq-question__toggle { width: 32px; height: 32px; }
+  .faq-answer { margin-left: 47px; margin-right: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq-page *,
+  .faq-page *::before,
+  .faq-page *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>

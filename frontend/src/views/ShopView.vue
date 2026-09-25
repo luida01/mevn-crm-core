@@ -1,171 +1,198 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <!-- Header/Navbar -->
-    <nav class="bg-white dark:bg-gray-800 shadow-md sticky top-0 z-50">
-      <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-        <div class="flex items-center gap-3">
-          <img src="/logo.png" alt="MangaGo" class="h-12">
-          <span class="text-2xl font-bold text-gray-900 dark:text-white">MangaGo</span>
-        </div>
-        <div class="flex gap-6 items-center">
-          <a href="/" class="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Shop</a>
-          <a href="/admin" class="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Admin</a>
-          <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-            Log in
-          </button>
-        </div>
-      </div>
-    </nav>
+  <div id="top" class="storefront min-h-screen">
+    <svg class="gooey-definitions" aria-hidden="true" focusable="false">
+      <defs>
+        <filter id="mangago-gooey-filter" x="-35%" y="-60%" width="170%" height="220%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur" />
+          <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -10" />
+        </filter>
+      </defs>
+    </svg>
 
-    <div class="container mx-auto px-4 py-12">
-      <!-- Hero Section -->
-      <div class="text-center mb-12">
-        <h1 class="text-5xl font-bold text-gray-900 dark:text-white mb-4">
-          We curate simple and timeless <span class="text-indigo-600 dark:text-indigo-400">Manga</span>, so you can <span class="font-black">Read brighter.</span>
-        </h1>
+    <ShopHeader />
+
+    <section class="shop-hero" aria-labelledby="shop-hero-title">
+      <div class="shop-hero__copy">
+        <p class="shop-hero__eyebrow">Tu próxima lectura empieza aquí</p>
+        <h1 id="shop-hero-title" class="shop-hero__title">Historias que te llevan <span>a otros mundos.</span></h1>
+        <p class="shop-hero__description">Descubre tu próxima serie favorita. Alquila para probarla, cómprala para tu colección y lee a tu propio ritmo.</p>
+        <div class="shop-hero__actions">
+          <a class="gooey-link" href="#novedades">
+            <span class="gooey-link__liquid" aria-hidden="true"><span class="gooey-link__bubble gooey-link__bubble--one"></span><span class="gooey-link__bubble gooey-link__bubble--two"></span></span>
+            <span class="gooey-link__label">Explorar mangas <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+          </a>
+          <a class="shop-hero__secondary" href="#como-funciona">¿Cómo funciona? <span aria-hidden="true">↓</span></a>
+        </div>
+        <div class="shop-hero__proof" aria-label="Ventajas de MangaGo">
+          <span><b aria-hidden="true">✓</b> Lee antes de coleccionar</span>
+          <span><b aria-hidden="true">✓</b> Sin compromisos largos</span>
+        </div>
       </div>
+      <div class="shop-hero__art" aria-label="Manga destacado">
+        <span class="hero-sticker hero-sticker--top" aria-hidden="true">Una historia<br>para cada<br>momento</span>
+        <span class="hero-sticker hero-sticker--bottom" aria-hidden="true">Lee a tu ritmo</span>
+        <article v-if="featuredManga" class="hero-poster">
+          <img :src="featuredManga.coverImage || '/no-cover.svg'" :alt="featuredManga.title" @error="handleCoverError">
+          <div class="hero-poster__shade"></div>
+          <div class="hero-poster__top">
+            <span class="hero-poster__tag">Selección de lectores</span>
+            <span v-if="featuredManga.malScore" class="hero-poster__score">★ {{ featuredManga.malScore.toFixed(1) }}</span>
+          </div>
+          <div class="hero-poster__caption">
+            <p>Una recomendación para ti</p>
+            <h2>{{ featuredManga.title }}</h2>
+            <span>{{ featuredManga.author }}</span>
+          </div>
+        </article>
+        <div v-else class="hero-poster hero-poster--empty">Una nueva historia<br>te está esperando</div>
+      </div>
+    </section>
+
+    <div class="container mx-auto px-4 py-12 storefront-content">
 
       <!-- Top Rated Carousel -->
-      <section class="mb-16">
-        <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-6">Trending Now</h2>
-        <MangaCarousel v-if="store.topRated.length > 0" :mangas="store.topRated" />
-        <div v-else class="flex justify-center py-12">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <section id="tendencias" class="mb-16 home-section">
+        <div class="home-section__heading">
+          <div><p class="section-eyebrow">Favoritos de la comunidad</p><h2>En boca de todos</h2></div>
+          <p>Las historias que están conquistando a quienes leen con nosotros.</p>
         </div>
+        <MangaCarousel v-if="store.topRated.length > 0" :mangas="store.topRated" />
+        <div v-else-if="store.loading" class="section-loading" role="status">Buscando las historias favoritas…</div>
+        <div v-else class="section-empty">Pronto encontrarás recomendaciones aquí.</div>
       </section>
 
       <!-- Recent Arrivals -->
-      <section class="mb-16">
-        <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-6">New Arrivals</h2>
-        <div v-if="store.loading" class="flex justify-center py-12">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <section id="novedades" class="mb-16 home-section">
+        <div class="home-section__heading">
+          <div><p class="section-eyebrow">Acaban de llegar</p><h2>Nuevas historias</h2></div>
+          <p>Descubre los últimos títulos que sumamos al catálogo.</p>
         </div>
-        <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+        <div v-if="store.loading" class="section-loading" role="status">Cargando novedades…</div>
+        <div v-else-if="store.recentArrivals.length > 0" class="arrival-grid">
           <div 
             v-for="manga in store.recentArrivals" 
             :key="manga._id"
-            class="bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer group"
+            class="arrival-card"
           >
-            <div class="relative overflow-hidden rounded-t-lg">
+            <div class="arrival-card__cover">
               <img 
-                :src="manga.coverImage || '/placeholder.jpg'" 
+                :src="manga.coverImage || '/no-cover.svg'"
                 :alt="manga.title"
-                class="w-full h-72 object-cover group-hover:scale-110 transition-transform duration-300"
+                loading="lazy"
+                @error="handleCoverError"
               >
-              <div v-if="manga.malScore" class="absolute top-2 right-2 bg-yellow-400 text-gray-900 font-bold px-2 py-1 rounded-full text-xs shadow-lg">
-                ⭐ {{ manga.malScore.toFixed(1) }}
-              </div>
+              <span v-if="manga.malScore" class="arrival-card__rating">★ {{ manga.malScore.toFixed(1) }}</span>
             </div>
-            <div class="p-4">
-              <h4 class="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 mb-2">{{ manga.title }}</h4>
-              <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">{{ manga.author }}</p>
-              <div class="flex justify-between items-center text-xs">
-                <span class="text-indigo-600 dark:text-indigo-400 font-semibold">${{ manga.rentalPrice }}/day</span>
-                <span class="text-green-600 dark:text-green-400 font-semibold">${{ manga.price }}</span>
+            <div class="arrival-card__body">
+              <h3>{{ manga.title }}</h3>
+              <p class="arrival-card__author">{{ manga.author }}</p>
+              <div class="arrival-card__prices">
+                <span>${{ manga.rentalPrice }} / día</span>
+                <span>Comprar · ${{ manga.price }}</span>
               </div>
             </div>
           </div>
         </div>
+        <div v-else class="section-empty">Estamos preparando más novedades para ti.</div>
       </section>
 
       <!-- Rental Info Section -->
-      <section class="mb-16">
+      <section id="como-funciona" class="mb-16 home-section">
         <RentalInfoSection />
       </section>
 
       <!-- Thematic Collections -->
-      <section class="mb-16">
-        <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-8">Thematic Collections</h2>
+      <section id="colecciones" class="mb-16 home-section">
+        <div class="home-section__heading">
+          <div><p class="section-eyebrow">Encuentra tu próximo mundo</p><h2>Lee según tu estado de ánimo</h2></div>
+          <p>Una puerta de entrada para cada tipo de lector.</p>
+        </div>
         
         <ThematicCollection 
-          title="Getting Started with Manga"
+          title="Empieza por aquí"
           :mangas="store.collections.beginner"
           :loading="store.loading"
         />
         
         <ThematicCollection 
-          title="Adapted to Current Anime"
+          title="Del anime a las páginas"
           :mangas="store.collections.animeAdaptations"
           :loading="store.loading"
         />
         
         <ThematicCollection 
-          title="Horror Masterpieces for the Night"
+          title="Misterio para leer de noche"
           :mangas="store.collections.horror"
           :loading="store.loading"
         />
       </section>
 
       <!-- Author Collections -->
-      <section class="mb-16">
-        <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-8">Author Collections</h2>
-        <div v-if="store.loading" class="flex justify-center py-12">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <section class="mb-16 home-section">
+        <div class="home-section__heading">
+          <div><p class="section-eyebrow">Quienes dan vida a cada página</p><h2>Autores que dejan huella</h2></div>
+          <p>Conoce a los creadores que más está leyendo la comunidad.</p>
         </div>
-        <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+        <div v-if="store.loading" class="section-loading" role="status">Cargando autores…</div>
+        <div v-else-if="topAuthors.length > 0" class="author-grid">
           <div 
             v-for="author in topAuthors" 
             :key="author._id"
-            @click="loadAuthorCollection(author._id)"
-            class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg shadow-lg hover:shadow-xl transition-all cursor-pointer p-6 text-center text-white"
+            class="author-card"
           >
-            <div class="text-4xl mb-2">📚</div>
-            <h4 class="font-bold text-sm mb-1">{{ author._id }}</h4>
-            <p class="text-xs opacity-90">{{ author.count }} titles</p>
-            <p v-if="author.avgScore" class="text-xs mt-1">⭐ {{ author.avgScore.toFixed(1) }}</p>
+            <div class="author-card__icon" aria-hidden="true">✳</div>
+            <h3>{{ author._id }}</h3>
+            <p>{{ author.count }} {{ author.count === 1 ? 'título' : 'títulos' }}<span v-if="author.avgScore"> · ★ {{ author.avgScore.toFixed(1) }}</span></p>
           </div>
         </div>
+        <div v-else class="section-empty">Los autores más leídos aparecerán aquí.</div>
       </section>
 
       <!-- Community Rankings -->
-      <section class="mb-16">
-        <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-8">What's the Community Reading?</h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <section class="community-section mb-16">
+        <p class="section-eyebrow">Lecturas que nos unen</p>
+        <h2 class="community-section__title">Lo que la comunidad está leyendo</h2>
+        <div class="community-grid">
           <!-- Most Read This Week -->
-          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">📖 Most Read This Week</h3>
-            <div v-if="store.loading" class="flex justify-center py-8">
-              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            </div>
-            <div v-else class="space-y-3">
+          <div class="community-card">
+            <h3>📖 Más leídos esta semana</h3>
+            <div v-if="mostReadWeek.length > 0" class="community-list">
               <div 
                 v-for="(manga, index) in mostReadWeek" 
                 :key="manga._id"
-                class="flex gap-3 items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+                class="community-list__item"
               >
-                <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 w-8">{{ index + 1 }}</div>
-                <img :src="manga.coverImage || '/placeholder.jpg'" :alt="manga.title" class="w-12 h-16 object-cover rounded shadow-sm">
-                <div class="flex-1">
-                  <h4 class="font-semibold text-sm text-gray-900 dark:text-white line-clamp-1">{{ manga.title }}</h4>
-                  <p class="text-xs text-gray-600 dark:text-gray-400">{{ manga.author }}</p>
+                <span class="community-list__rank">{{ String(index + 1).padStart(2, '0') }}</span>
+                <img :src="manga.coverImage || '/no-cover.svg'" :alt="manga.title" class="community-list__cover" loading="lazy" @error="handleCoverError">
+                <div class="community-list__copy">
+                  <strong>{{ manga.title }}</strong>
+                  <span>{{ manga.author }}</span>
                 </div>
-                <div v-if="manga.malScore" class="text-yellow-500 text-sm font-bold">⭐ {{ manga.malScore.toFixed(1) }}</div>
+                <span v-if="manga.malScore" class="community-list__value">★ {{ manga.malScore.toFixed(1) }}</span>
               </div>
             </div>
+            <p v-else class="community-empty">Aún no hay lecturas para mostrar.</p>
           </div>
 
           <!-- Most Rented Today -->
-          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">🔥 Most Rented Today</h3>
-            <div v-if="store.loading" class="flex justify-center py-8">
-              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            </div>
-            <div v-else class="space-y-3">
+          <div class="community-card">
+            <h3>🔥 Más alquilados hoy</h3>
+            <div v-if="mostRentedToday.length > 0" class="community-list">
               <div 
                 v-for="(manga, index) in mostRentedToday" 
                 :key="manga._id"
-                class="flex gap-3 items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+                class="community-list__item"
               >
-                <div class="text-2xl font-bold text-green-600 dark:text-green-400 w-8">{{ index + 1 }}</div>
-                <img :src="manga.coverImage || '/placeholder.jpg'" :alt="manga.title" class="w-12 h-16 object-cover rounded shadow-sm">
-                <div class="flex-1">
-                  <h4 class="font-semibold text-sm text-gray-900 dark:text-white line-clamp-1">{{ manga.title }}</h4>
-                  <p class="text-xs text-gray-600 dark:text-gray-400">{{ manga.author }}</p>
+                <span class="community-list__rank">{{ String(index + 1).padStart(2, '0') }}</span>
+                <img :src="manga.coverImage || '/no-cover.svg'" :alt="manga.title" class="community-list__cover" loading="lazy" @error="handleCoverError">
+                <div class="community-list__copy">
+                  <strong>{{ manga.title }}</strong>
+                  <span>{{ manga.author }}</span>
                 </div>
-                <div class="text-indigo-600 dark:text-indigo-400 text-sm font-bold">${{ manga.rentalPrice }}/day</div>
+                <span class="community-list__value">${{ manga.rentalPrice }}/día</span>
               </div>
             </div>
+            <p v-else class="community-empty">Los alquileres de hoy aparecerán aquí.</p>
           </div>
         </div>
       </section>
@@ -177,52 +204,53 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useShopStore } from '../stores/shopStore';
+import type { Manga } from '../types/Manga';
 import MangaCarousel from '../components/MangaCarousel.vue';
 import RentalInfoSection from '../components/RentalInfoSection.vue';
 import ThematicCollection from '../components/ThematicCollection.vue';
 import ShopFooter from '../components/ShopFooter.vue';
+import ShopHeader from '../components/ShopHeader.vue';
 import api from '../services/api';
 
 const store = useShopStore();
-const topAuthors = ref<any[]>([]);
-const mostReadWeek = ref<any[]>([]);
-const mostRentedToday = ref<any[]>([]);
+const topAuthors = ref<Array<{ _id: string; count: number; avgScore?: number }>>([]);
+const mostReadWeek = ref<Manga[]>([]);
+const mostRentedToday = ref<Manga[]>([]);
+const featuredManga = computed(() => store.topRated[0] || store.recentArrivals[0] || null);
 
-const loadAuthorCollection = async (author: string) => {
-  // TODO: Implement author collection modal or navigation
-  console.log('Load collection for:', author);
+const handleCoverError = (event: Event) => {
+  const image = event.currentTarget as HTMLImageElement;
+  image.onerror = null;
+  image.src = '/no-cover.svg';
 };
 
 onMounted(async () => {
   await Promise.all([
     store.fetchTopRated(10),
-    store.fetchRecentArrivals(6), // Changed to 6
+    store.fetchRecentArrivals(6),
     store.fetchCollection('beginner'),
     store.fetchCollection('anime-adaptations'),
     store.fetchCollection('horror')
-    // Removed 'complete' collection
   ]);
 
-  // Fetch top authors
   try {
-    const authorsRes = await api.get('/shop/top-authors?limit=6');
-    topAuthors.value = authorsRes.data;
-  } catch (err) {
-    console.error('Error fetching top authors:', err);
+    const authorsResponse = await api.get<Array<{ _id: string; count: number; avgScore?: number }>>('/shop/top-authors?limit=6');
+    topAuthors.value = authorsResponse.data;
+  } catch (error) {
+    console.error('Error fetching top authors:', error);
   }
 
-  // Fetch community rankings
   try {
-    const [weekRes, todayRes] = await Promise.all([
-      api.get('/shop/most-read-week?limit=10'),
-      api.get('/shop/most-rented-today?limit=10')
+    const [weekResponse, todayResponse] = await Promise.all([
+      api.get<Manga[]>('/shop/most-read-week?limit=10'),
+      api.get<Manga[]>('/shop/most-rented-today?limit=10')
     ]);
-    mostReadWeek.value = weekRes.data;
-    mostRentedToday.value = todayRes.data;
-  } catch (err) {
-    console.error('Error fetching rankings:', err);
+    mostReadWeek.value = weekResponse.data;
+    mostRentedToday.value = todayResponse.data;
+  } catch (error) {
+    console.error('Error fetching community rankings:', error);
   }
 });
 </script>
