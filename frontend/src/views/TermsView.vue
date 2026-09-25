@@ -8,19 +8,19 @@
     <section class="info-card">
       <p class="info-card__eyebrow">01 · ALCANCE</p>
       <h2>Catálogo público</h2>
-      <p>La web permite explorar títulos y consultar los datos del catálogo. En esta versión, el sitio público no crea cuentas de clientes ni completa pedidos, alquileres o pagos reales. El flujo de pago visible es solo una simulación.</p>
+      <p>La web permite explorar títulos y consultar el catálogo. El carrito puede combinar compras y alquileres y abrir Stripe Checkout en modo de prueba. Este entorno no procesa pagos reales.</p>
     </section>
 
     <section class="info-card">
       <p class="info-card__eyebrow">02 · DISPONIBILIDAD Y PRECIOS</p>
       <h2>Información administrada por el equipo</h2>
-      <p>Los precios y las cantidades disponibles provienen del inventario administrado en el sistema. Pueden cambiar cuando el equipo actualiza los registros; la ficha de un título no constituye una compra ni una reserva.</p>
+      <p>Los precios y las cantidades disponibles provienen del inventario administrado en el sistema. Al iniciar un checkout de prueba, la tienda reserva temporalmente las unidades; las sesiones canceladas o vencidas liberan esa reserva.</p>
     </section>
 
     <section class="info-card">
       <p class="info-card__eyebrow">03 · ALQUILERES Y DEVOLUCIONES</p>
       <h2>Operaciones en preparación</h2>
-      <p>El panel interno permite gestionar registros de alquiler y devoluciones. La tienda pública ofrece una simulación de compra, alquiler y pago, pero no crea pedidos ni registra transacciones. Las reglas comerciales finales deben confirmarse antes de habilitar esos servicios.</p>
+      <p>El panel interno permite gestionar alquileres, devoluciones y pedidos de prueba. Un pago aprobado en Stripe de prueba genera un pedido y un comprobante interno; las líneas de alquiler también crean sus registros para administrar la devolución. Las reglas comerciales finales deben confirmarse antes de habilitar pagos reales.</p>
       <div class="info-related info-related--inline">
         <router-link to="/rental-policies">Estado de los alquileres <span aria-hidden="true">↗</span></router-link>
         <router-link to="/return-policy">Estado de las devoluciones <span aria-hidden="true">↗</span></router-link>

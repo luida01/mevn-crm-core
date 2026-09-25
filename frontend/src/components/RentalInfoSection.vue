@@ -57,9 +57,9 @@
         </div>
         <h3>Compra en modo de prueba</h3>
         <ul class="rental-card__details">
-          <li>El catálogo no reserva ejemplares</li>
-          <li>La tienda no acepta pedidos</li>
-          <li>El pago es solo una simulación</li>
+          <li>La reserva se inicia al comenzar el pago</li>
+          <li>Las compras y alquileres comparten carrito</li>
+          <li>Stripe Checkout usa tarjetas de prueba</li>
           <li>Revisa las condiciones actuales</li>
         </ul>
         <router-link class="rental-card__link" to="/rental-policies">Ver estado del servicio <span aria-hidden="true">↗</span></router-link>

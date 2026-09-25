@@ -18,7 +18,7 @@
       <div class="info-card__grid">
         <article class="info-detail"><span aria-hidden="true">01</span><h3>Stock</h3><p>Al registrar un alquiler, se reserva una unidad. Al marcar la devolución, esa unidad vuelve al inventario.</p></article>
         <article class="info-detail"><span aria-hidden="true">02</span><h3>Cálculo</h3><p>El sistema calcula el costo usando la tarifa diaria configurada para el manga y los días hasta la fecha de devolución.</p></article>
-        <article class="info-detail"><span aria-hidden="true">03</span><h3>Pago</h3><p>El panel guarda si el alquiler figura como pagado. La simulación visible en la tienda no procesa pagos reales.</p></article>
+        <article class="info-detail"><span aria-hidden="true">03</span><h3>Pago</h3><p>El checkout de la tienda procesa pagos de prueba mediante Stripe. Los alquileres aprobados se registran como pagados en el panel administrativo.</p></article>
       </div>
     </section>
 

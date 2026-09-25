@@ -5,6 +5,7 @@ const net = require('node:net');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const mongoose = require('mongoose');
+const Stripe = require('stripe');
 
 async function main() {
   const name = 'mangago_check_' + crypto.randomBytes(8).toString('hex');
@@ -22,10 +23,13 @@ async function main() {
   const dbUri = new URL(mongoOrigin);
   dbUri.pathname = '/' + name;
   const password = crypto.randomBytes(18).toString('hex');
+  const webhookSecret = 'whsec_workflow_test_secret_1234567890';
+  const stripe = new Stripe('sk_test_workflow_fake');
   const child = spawn(process.execPath, [path.resolve(__dirname, '../dist/server.js')], {
     cwd: path.resolve(__dirname, '..'),
     env: { ...process.env, PORT: String(port), MONGODB_URI: dbUri.toString(),
-      ADMIN_USERNAME: 'workflow-check', ADMIN_PASSWORD: password, JWT_SECRET: crypto.randomBytes(40).toString('hex') },
+      ADMIN_USERNAME: 'workflow-check', ADMIN_PASSWORD: password, JWT_SECRET: crypto.randomBytes(40).toString('hex'),
+      STRIPE_SECRET_KEY: 'sk_test_workflow_fake', STRIPE_WEBHOOK_SECRET: webhookSecret },
     stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true
   });
   let output = '';
@@ -41,6 +45,16 @@ async function main() {
     assert.equal(response.status, expected, method + ' ' + route + ': ' + JSON.stringify(data));
     checks++;
     return data;
+  };
+  const sendStripeEvent = async (type, object) => {
+    const payload = JSON.stringify({ id: 'evt_' + crypto.randomBytes(12).toString('hex'), object: 'event', type, data: { object } });
+    const signature = stripe.webhooks.generateTestHeaderString({ payload, secret: webhookSecret });
+    const response = await fetch(base + '/api/payments/webhook', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Stripe-Signature': signature }, body: payload
+    });
+    const body = await response.text();
+    assert.equal(response.status, 200, 'Stripe ' + type + ': ' + body);
+    checks++;
   };
   try {
     for (let attempt = 0; attempt < 100; attempt++) {
@@ -99,6 +113,58 @@ async function main() {
     await request('PUT', '/settings', { ...settings, defaultRentalDays: 0 }, 400);
     await request('PUT', '/settings', settings);
     assert.equal((await request('GET', '/settings')).defaultRentalDays, 14);
+
+    // Signed Stripe test events exercise paid orders and stock release without contacting Stripe.
+    const checkoutManga = await request('POST', '/mangas', { ...mangaInput, title: 'Paid checkout rental', price: 12, rentalPrice: 0.75, stock: 3, malScore: 0 }, 201);
+    const paidOrderId = new mongoose.Types.ObjectId();
+    const paidToken = crypto.randomBytes(32).toString('base64url');
+    const paidExpiry = new Date(Date.now() + 31 * 60 * 1000);
+    const paidMangaId = new mongoose.Types.ObjectId(checkoutManga._id);
+    await connection.collection('mangas').updateOne({ _id: paidMangaId }, {
+      $inc: { stock: -1 }, $push: { reservations: { orderId: paidOrderId, quantity: 1, expiresAt: paidExpiry } }
+    });
+    await connection.collection('orders').insertOne({
+      _id: paidOrderId, idempotencyKey: 'workflow-paid-' + paidOrderId.toString(), confirmationToken: paidToken,
+      status: 'pending', currency: 'usd', items: [{ manga: paidMangaId, title: 'Paid checkout rental', author: 'Test Author', volume: 1,
+        kind: 'rental', quantity: 1, days: 2, unitAmount: 1.5, lineTotal: 1.5 }], total: 1.5,
+      customer: { name: 'Checkout Reader', email: 'checkout-reader@example.test' }, stripeSessionId: 'cs_test_workflow_paid', expiresAt: paidExpiry,
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    const paidSession = { id: 'cs_test_workflow_paid', object: 'checkout.session', metadata: { orderId: paidOrderId.toString() }, payment_status: 'paid',
+      payment_intent: 'pi_test_workflow_paid', currency: 'usd', customer_details: { email: 'checkout-reader@example.test', name: 'Checkout Reader' } };
+    const invalidWebhook = await fetch(base + '/api/payments/webhook', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Stripe-Signature': 'invalid' }, body: JSON.stringify({}) });
+    assert.equal(invalidWebhook.status, 400); checks++;
+    await sendStripeEvent('checkout.session.completed', paidSession);
+    await sendStripeEvent('checkout.session.completed', paidSession);
+    const paidOrder = (await request('GET', '/orders')).find(order => order._id === paidOrderId.toString());
+    assert.equal(paidOrder.status, 'paid'); assert.equal(paidOrder.receipt.number, 'MG-' + paidOrderId.toString().slice(-10).toUpperCase());
+    assert.equal(paidOrder.receipt.fiscal, false); assert.equal(paidOrder.receipt.issuer.businessName, 'Workflow Shop');
+    const confirmation = await request('GET', '/checkout/confirmation/cs_test_workflow_paid?token=' + paidToken, undefined, 200, false);
+    assert.equal(confirmation.status, 'paid'); assert.equal(confirmation.receipt.customer.email, 'checkout-reader@example.test');
+    const paidRentals = (await request('GET', '/rentals')).filter(item => item.checkoutOrder === paidOrderId.toString());
+    assert.equal(paidRentals.length, 1); assert.equal(paidRentals[0].isPaid, true); checks++;
+    assert.equal((await request('GET', '/mangas/' + checkoutManga._id)).stock, 2);
+    await request('GET', '/checkout/confirmation/cs_test_workflow_paid?token=wrong', undefined, 400, false);
+
+    const expiredManga = await request('POST', '/mangas', { ...mangaInput, title: 'Expired checkout item', price: 12, rentalPrice: 0, stock: 2, malScore: 0 }, 201);
+    const expiredOrderId = new mongoose.Types.ObjectId();
+    const expiredMangaId = new mongoose.Types.ObjectId(expiredManga._id);
+    await connection.collection('mangas').updateOne({ _id: expiredMangaId }, {
+      $inc: { stock: -2 }, $push: { reservations: { orderId: expiredOrderId, quantity: 2, expiresAt: paidExpiry } }
+    });
+    await connection.collection('orders').insertOne({
+      _id: expiredOrderId, idempotencyKey: 'workflow-expired-' + expiredOrderId.toString(), confirmationToken: crypto.randomBytes(32).toString('base64url'),
+      status: 'pending', currency: 'usd', items: [{ manga: expiredMangaId, title: 'Expired checkout item', author: 'Test Author', volume: 1,
+        kind: 'purchase', quantity: 2, unitAmount: 12, lineTotal: 24 }], total: 24,
+      customer: { name: 'Expired Reader', email: 'expired-reader@example.test' }, stripeSessionId: 'cs_test_workflow_expired', expiresAt: paidExpiry,
+      createdAt: new Date(), updatedAt: new Date()
+    });
+    const expiredSession = { id: 'cs_test_workflow_expired', object: 'checkout.session', metadata: { orderId: expiredOrderId.toString() } };
+    await sendStripeEvent('checkout.session.expired', expiredSession);
+    await sendStripeEvent('checkout.session.expired', expiredSession);
+    assert.equal((await request('GET', '/orders')).find(order => order._id === expiredOrderId.toString()).status, 'expired');
+    assert.equal((await request('GET', '/mangas/' + expiredManga._id)).stock, 2);
+
     const invoices = await Promise.all([0, 1].map(async () => {
       const response = await fetch(base + '/api/invoices', { method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ rentalId: rental._id }) });
@@ -130,7 +196,7 @@ async function main() {
     await request('PUT', '/mangas/' + empty._id + '/stock', { quantity: 0.5 }, 400);
     await Promise.all([request('PUT', '/mangas/' + empty._id + '/stock', { quantity: 2 }), request('PUT', '/mangas/' + empty._id + '/stock', { quantity: 2 })]);
     assert.equal((await request('GET', '/mangas/' + empty._id)).stock, 4);
-    console.log('PASS: ' + checks + ' API checks — customers, catalog, inventory concurrency, overdue rentals, payments, invoices and settings.');
+    console.log('PASS: ' + checks + ' API checks — catalog, stock reservation, signed payment webhooks, order receipts, rentals, invoices, customers and settings.');
   } catch (error) {
     console.error(output); throw error;
   } finally {

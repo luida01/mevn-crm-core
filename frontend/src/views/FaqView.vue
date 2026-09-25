@@ -8,7 +8,7 @@
           <p class="faq-eyebrow"><span aria-hidden="true">✳</span> Centro de ayuda</p>
           <h1 id="faq-title">Respuestas para<br><em>seguir leyendo.</em></h1>
           <p class="faq-hero__intro">
-            Entiende qué ofrece el catálogo y cómo funcionan las simulaciones de alquiler, compra y pago.
+            Entiende qué ofrece el catálogo y cómo funcionan las compras y alquileres en modo de prueba.
           </p>
           <a class="faq-hero__link" href="#preguntas">Ver preguntas frecuentes <span aria-hidden="true">↓</span></a>
         </div>
@@ -103,7 +103,7 @@ const faqs = [
   {
     id: 'comprar-alquilar',
     question: '¿Puedo comprar o alquilar desde la tienda?',
-    answer: 'Aún no se pueden completar pedidos reales. Desde la ficha puedes abrir una simulación de compra o alquiler, pero no reserva ejemplares ni cambia el inventario.',
+    answer: 'Puedes combinar compras y alquileres en un mismo carrito y continuar a Stripe Checkout en modo de prueba. Al iniciar el pago, el sistema reserva stock temporalmente; una operación aprobada queda en Pedidos y los alquileres aparecen en el panel.',
     links: [{ label: 'Estado de los alquileres', to: '/rental-policies' }]
   },
   {
@@ -133,7 +133,7 @@ const faqs = [
   {
     id: 'pagos',
     question: '¿Qué medios de pago puedo usar?',
-    answer: 'La ficha incluye una pasarela visual de demostración con la que puedes simular el resultado. No hay un proveedor conectado ni se realiza ningún cobro.',
+    answer: 'La tienda usa Stripe Checkout en modo de prueba. Se necesita configurar las claves de prueba en el servidor y no se procesan cobros reales.',
     links: [{ label: 'Leer términos del proyecto', to: '/terms' }]
   },
   {

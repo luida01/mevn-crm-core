@@ -135,6 +135,8 @@ The migration groups records by normalized title, records differing authors as a
 - Settings stores business contact details and suggested rental days. Updates affect future receipts and new rental forms.
 - The public catalog includes every volume, even when stock is zero; search and availability filters are available. Remote imports start with zero stock and zero prices until staff updates them.
 - With MongoDB running locally, run `npm run check:workflows` from `backend`. It builds the API, starts an isolated instance, checks customer/inventory/rental/payment/receipt/settings flows and deletes its own randomly named test database. `TEST_MONGODB_URI` optionally overrides the MongoDB server; no application records are used.
+- `npm run test:e2e` from `frontend` runs Playwright browser flows for catalog search, mixed purchase/rental carts, the configured payment screen, admin login and the Orders page. It starts isolated local services and uses `E2E_MONGODB_URI` (defaults to the dedicated `mangago_e2e` database); install Chromium once with `npx playwright install chromium`.
+- GitHub Actions runs all three production builds, the isolated API workflow (including signed test-mode Stripe webhook retries and reservation release), and the Playwright flows on pushes and pull requests to `main`.
 
 ### Backend
 - **Runtime**: Node.js with TypeScript

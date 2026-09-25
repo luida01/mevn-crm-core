@@ -27,7 +27,7 @@
             <span aria-hidden="true">{{ manga.stock > 0 ? '●' : '○' }}</span>
             {{ manga.stock > 0 ? `${manga.stock} ${manga.stock === 1 ? 'unidad disponible' : 'unidades disponibles'}` : 'Sin unidades disponibles' }}
           </p>
-          <p class="shop-manga-dialog__note">Puedes combinar compras y alquileres en el mismo carrito. Añadir un volumen no lo reserva y el pago todavía es una simulación.</p>
+          <p class="shop-manga-dialog__note">Puedes combinar compras y alquileres en el mismo carrito. El stock se reserva por 31 minutos al continuar a Stripe Checkout en modo de prueba.</p>
           <div class="shop-manga-dialog__actions">
             <button type="button" class="shop-manga-dialog__rent" :disabled="manga.stock < 1 || manga.rentalPrice <= 0" @click="emit('addToCart', 'rental')">Añadir alquiler</button>
             <button type="button" class="shop-manga-dialog__buy" :disabled="manga.stock < 1 || manga.price <= 0" @click="emit('addToCart', 'purchase')">Añadir compra</button>

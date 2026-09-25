@@ -47,8 +47,9 @@ const handleLogin = async () => {
 
       <form @submit.prevent="handleLogin" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
+          <label for="login-username" class="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
           <input
+            id="login-username"
             v-model="username"
             type="text"
             required
@@ -57,8 +58,9 @@ const handleLogin = async () => {
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+          <label for="login-password" class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
           <input
+            id="login-password"
             v-model="password"
             type="password"
             required

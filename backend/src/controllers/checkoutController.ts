@@ -168,6 +168,7 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
         const shopUrl = (process.env.SHOP_URL || 'http://localhost:5173').replace(/\/$/, '');
         const session = await stripe.checkout.sessions.create({
             mode: 'payment', currency: order.currency,
+            payment_method_types: ['card'],
             customer_email: order.customer.email,
             customer_creation: 'always', billing_address_collection: 'auto',
             expires_at: Math.floor(expiresAt.getTime() / 1000),
@@ -267,6 +268,27 @@ export const stripeWebhook = async (req: Request, res: Response) => {
     } catch (error: unknown) {
         console.error('Stripe webhook processing failed:', error);
         res.status(500).send('Webhook processing failed; Stripe may retry this event.');
+    }
+};
+
+// Recover reservations if the API was offline when Stripe emitted its expiration webhook.
+// Completed/paid sessions remain pending for their success webhook to finalize.
+export const expireOverdueCheckouts = async (): Promise<void> => {
+    const stripe = getStripe();
+    if (!stripe) return;
+    const overdue = await Order.find({ status: { $in: ['pending', 'cancelled', 'expired', 'failed'] }, expiresAt: { $lte: new Date() } }).sort({ expiresAt: 1 }).limit(100);
+    for (const order of overdue) {
+        if (order.status !== 'pending') {
+            await releaseOrderReservations(order);
+            continue;
+        }
+        if (order.stripeSessionId) {
+            const session = await stripe.checkout.sessions.retrieve(order.stripeSessionId);
+            if (session.status === 'complete' && session.payment_status === 'paid') continue;
+            if (session.status === 'open') await stripe.checkout.sessions.expire(session.id);
+        }
+        const expired = await Order.findOneAndUpdate({ _id: order._id, status: 'pending' }, { $set: { status: 'expired' } }, { new: true });
+        if (expired) await releaseOrderReservations(expired);
     }
 };
 

@@ -13,6 +13,7 @@ import settingsRoutes from './routes/settingsRoutes';
 import checkoutRoutes from './routes/checkoutRoutes';
 import paymentWebhookRoutes from './routes/paymentWebhookRoutes';
 import orderRoutes from './routes/orderRoutes';
+import { expireOverdueCheckouts } from './controllers/checkoutController';
 
 const app = express();
 const PORT = Number.parseInt(process.env.PORT || '5000', 10);
@@ -103,6 +104,11 @@ const startServer = async (): Promise<void> => {
     validateConfiguration();
     await mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 10_000 });
     console.log('Connected to MongoDB');
+    const reservationSweep = setInterval(() => {
+        void expireOverdueCheckouts().catch((error: unknown) => console.error('Checkout reservation cleanup failed:', error));
+    }, 60_000);
+    reservationSweep.unref();
+    void expireOverdueCheckouts().catch((error: unknown) => console.error('Checkout reservation cleanup failed:', error));
 
     const server = app.listen(PORT, () => {
         console.log(`Server is running on port ${PORT}`);
@@ -110,6 +116,7 @@ const startServer = async (): Promise<void> => {
 
     const shutdown = (): void => {
         console.log('Shutdown signal received; closing HTTP server');
+        clearInterval(reservationSweep);
         server.close(() => {
             void mongoose.disconnect().then(() => {
                 console.log('MongoDB connection closed');
