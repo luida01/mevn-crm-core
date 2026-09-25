@@ -13,7 +13,7 @@ const customerFields: readonly (keyof CustomerInput)[] = [
 
 const populateRentals = {
     path: 'rentals',
-    populate: { path: 'manga' }
+    populate: { path: 'manga', populate: { path: 'series' } }
 };
 
 const handleWriteError = (error: unknown, res: Response, fallback: string): void => {

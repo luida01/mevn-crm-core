@@ -8,6 +8,8 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "check:workflows": "npm run build && node scripts/check-workflows.cjs",
+    "check:series-migration": "npm run build && node scripts/check-series-migration.cjs",
+    "migrate:series": "npm run build && node scripts/migrate-series.cjs",
     "start": "node dist/server.js",
     "seed": "ts-node src/seed.ts"
   },

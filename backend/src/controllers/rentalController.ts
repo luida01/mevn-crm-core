@@ -14,7 +14,7 @@ export const getRentals = async (_req: Request, res: Response) => {
 
         const rentals = await Rental.find()
             .populate('customer', 'firstName lastName email')
-            .populate('manga', 'title volume coverImage')
+            .populate({ path: 'manga', populate: { path: 'series' } })
             .sort({ createdAt: -1 });
         res.json(rentals);
     } catch (error: unknown) {

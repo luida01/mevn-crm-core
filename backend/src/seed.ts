@@ -2,6 +2,7 @@ import 'dotenv/config';
 import mongoose from 'mongoose';
 import Customer from './models/Customer';
 import Manga from './models/Manga';
+import { resolveMangaSeries } from './services/mangaSeries';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mevn-crm';
 
@@ -80,16 +81,19 @@ const seedData = async (): Promise<void> => {
             }
         })));
 
-        const mangaResults = await Manga.bulkWrite(mangas.map((manga) => ({
-            updateOne: {
-                filter: { title: manga.title, volume: manga.volume },
-                update: { $setOnInsert: manga },
-                upsert: true
-            }
-        })));
+        let insertedVolumes = 0;
+        for (const manga of mangas) {
+            const series = await resolveMangaSeries(manga);
+            const result = await Manga.updateOne(
+                { series: series._id, volume: manga.volume },
+                { $setOnInsert: { series: series._id, volume: manga.volume, coverImage: manga.coverImage, price: manga.price, rentalPrice: manga.rentalPrice, stock: manga.stock } },
+                { upsert: true }
+            );
+            if (result.upsertedCount) insertedVolumes += result.upsertedCount;
+        }
 
         console.log(
-            `Demo seed complete. Added ${customerResults.upsertedCount} customers and ${mangaResults.upsertedCount} manga volumes; existing records were preserved.`
+            `Demo seed complete. Added ${customerResults.upsertedCount} customers and ${insertedVolumes} manga volumes; existing records were preserved.`
         );
     } catch (error: unknown) {
         console.error('Error seeding database:', error);

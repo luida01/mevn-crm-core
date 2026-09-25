@@ -6,6 +6,7 @@ import Customer from '../models/Customer';
 import Manga from '../models/Manga';
 import { readBusinessSettings } from '../models/BusinessSettings';
 import { requireAuth, requireRole } from '../middleware/auth';
+import { serializeManga } from '../services/mangaSeries';
 
 const router = Router();
 router.use(requireAuth, requireRole('admin'));
@@ -26,16 +27,17 @@ router.post('/', async (req, res) => {
         const rental = await Rental.findById(rentalId);
         if (!rental) { res.status(404).json({ message: 'El alquiler no existe.' }); return; }
         const [customer, manga, settings] = await Promise.all([
-            Customer.findById(rental.customer), Manga.findById(rental.manga), readBusinessSettings()
+            Customer.findById(rental.customer), Manga.findById(rental.manga).populate('series'), readBusinessSettings()
         ]);
         if (!customer || !manga) { res.status(409).json({ message: 'Faltan los datos del cliente o del manga.' }); return; }
+        const mangaView = serializeManga(manga);
         const invoice = await Invoice.create({
             number: 'MG-' + rentalId.toUpperCase(),
             rental: rental._id,
             issuer: { businessName: settings.businessName, contactEmail: settings.contactEmail, phone: settings.phone, address: settings.address },
             customer: { name: customer.firstName + ' ' + customer.lastName, email: customer.email,
                 address: [customer.address?.street, customer.address?.city, customer.address?.zip].filter(Boolean).join(', ') },
-            item: { title: manga.title, volume: manga.volume, startDate: rental.startDate, dueDate: rental.dueDate },
+            item: { title: String(mangaView.title || ''), volume: manga.volume, startDate: rental.startDate, dueDate: rental.dueDate },
             amount: rental.cost
         });
         res.status(201).json(await invoice.populate('rental', paymentFields));

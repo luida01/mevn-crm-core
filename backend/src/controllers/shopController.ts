@@ -1,32 +1,45 @@
 import { Request, Response } from 'express';
-import Manga from '../models/Manga';
+import mongoose from 'mongoose';
+import Manga, { IManga } from '../models/Manga';
+import MangaSeries from '../models/MangaSeries';
 import Rental from '../models/Rental';
 import { escapeRegex, parseLimit } from '../utils/requestBody';
+import { loadSeriesForVolumeIds, serializeMangas } from '../services/mangaSeries';
+
+const seriesFilter = (search: string, title: string, author: string) => {
+    const filter: Record<string, unknown> = {};
+    if (title) filter.title = title;
+    if (author) filter.author = { $regex: `^${escapeRegex(author)}$`, $options: 'i' };
+    if (search) filter.$or = ['title', 'author', 'genre', 'alternativeTitles'].map(field => ({ [field]: { $regex: escapeRegex(search), $options: 'i' } }));
+    return filter;
+};
+
 export const getCatalog = async (req: Request, res: Response) => {
     const search = typeof req.query.q === 'string' ? req.query.q.trim() : '';
-    if (search.length > 100) return res.status(400).json({ message: 'Search must be at most 100 characters' });
     const title = typeof req.query.title === 'string' ? req.query.title.trim() : '';
     const author = typeof req.query.author === 'string' ? req.query.author.trim() : '';
+    if (search.length > 100) return res.status(400).json({ message: 'Search must be at most 100 characters' });
+    if (title.length > 200 || author.length > 200) return res.status(400).json({ message: 'Title and author filters must be at most 200 characters' });
     const volume = Number.parseInt(String(req.query.volume || ''), 10);
     const mode = req.query.mode === 'purchase' || req.query.mode === 'rental' ? req.query.mode : '';
     const page = Math.max(1, Math.min(100000, Number.parseInt(String(req.query.page || '1'), 10) || 1));
     const limit = parseLimit(req.query.limit, 12, 48);
-    const query: Record<string, unknown> = {};
-    if (search) query.$or = ['title', 'author', 'genre'].map(field => ({ [field]: { $regex: escapeRegex(search), $options: 'i' } }));
-    if (title.length > 200 || author.length > 200) return res.status(400).json({ message: 'Title and author filters must be at most 200 characters' });
-    if (title) query.title = title;
-    if (author) query.author = { $regex: `^${escapeRegex(author)}$`, $options: 'i' };
-    if (Number.isInteger(volume) && volume > 0) query.volume = volume;
-    if (req.query.availability === 'available') query.stock = { $gt: 0 };
-    if (req.query.availability === 'unavailable') query.stock = 0;
-    if (mode === 'purchase') query.price = { $gt: 0 };
-    if (mode === 'rental') query.rentalPrice = { $gt: 0 };
     try {
-        const [items, total] = await Promise.all([
-            Manga.find(query).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit),
-            Manga.countDocuments(query)
+        const filter: Record<string, unknown> = {};
+        if (search || title || author) {
+            const series = await MangaSeries.find(seriesFilter(search, title, author)).select('_id').lean();
+            filter.series = { $in: series.map(item => item._id) };
+        }
+        if (Number.isInteger(volume) && volume > 0) filter.volume = volume;
+        if (req.query.availability === 'available') filter.stock = { $gt: 0 };
+        if (req.query.availability === 'unavailable') filter.stock = 0;
+        if (mode === 'purchase') filter.price = { $gt: 0 };
+        if (mode === 'rental') filter.rentalPrice = { $gt: 0 };
+        const [volumes, total] = await Promise.all([
+            Manga.find(filter).populate('series').sort({ createdAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit),
+            Manga.countDocuments(filter)
         ]);
-        res.set('Cache-Control', 'no-store').json({ items, total, page, pages: Math.ceil(total / limit) });
+        res.set('Cache-Control', 'no-store').json({ items: serializeMangas(volumes), total, page, pages: Math.ceil(total / limit) });
     } catch (error: unknown) {
         console.error('Error loading catalog:', error);
         res.status(500).json({ message: 'Could not load catalog' });
@@ -37,155 +50,104 @@ export const getCatalogFilters = async (req: Request, res: Response) => {
     const title = typeof req.query.title === 'string' ? req.query.title.trim() : '';
     if (title.length > 200) return res.status(400).json({ message: 'Title must be at most 200 characters' });
     try {
-        const [titles, authors, volumes] = await Promise.all([
-            Manga.distinct('title'),
-            Manga.distinct('author'),
-            title ? Manga.distinct('volume', { title }) : Promise.resolve([] as number[])
-        ]);
-        res.set('Cache-Control', 'no-store').json({
-            titles: titles.filter((value): value is string => typeof value === 'string').sort((a, b) => a.localeCompare(b)),
-            authors: authors.filter((value): value is string => typeof value === 'string').sort((a, b) => a.localeCompare(b)),
-            volumes: volumes.filter((value): value is number => typeof value === 'number').sort((a, b) => a - b)
-        });
+        const series = await MangaSeries.find().select('title author').sort({ title: 1 }).lean();
+        const titles = [...new Set(series.map(item => item.title))];
+        const authors = [...new Set(series.map(item => item.author))].sort((a, b) => a.localeCompare(b));
+        let volumes: number[] = [];
+        if (title) {
+            const selectedSeries = series.filter(item => item.title === title).map(item => item._id);
+            volumes = await Manga.distinct('volume', { series: { $in: selectedSeries } });
+            volumes.sort((a, b) => a - b);
+        }
+        res.set('Cache-Control', 'no-store').json({ titles, authors, volumes });
     } catch (error: unknown) {
         console.error('Error loading catalog filters:', error);
         res.status(500).json({ message: 'Could not load catalog filters' });
     }
 };
 
-// Get top-rated mangas (by MAL score >= 7.5, in stock)
+const serializedSorted = (volumes: IManga[], limit: number) =>
+    serializeMangas(volumes).sort((a, b) => Number(b.malScore || 0) - Number(a.malScore || 0)).slice(0, limit);
+
 export const getTopRatedMangas = async (req: Request, res: Response) => {
     try {
         const limit = parseLimit(req.query.limit, 10);
-
-        // Try to get mangas with score >= 7.5
-        let mangas = await Manga.find({
-            malScore: { $gte: 7.5 },
-            stock: { $gt: 0 }
-        })
-            .sort({ malScore: -1 })
-            .limit(limit);
-
-        // Fallback: if no mangas with score, get any mangas in stock
-        if (mangas.length === 0) {
-            mangas = await Manga.find({ stock: { $gt: 0 } })
-                .sort({ createdAt: -1 })
-                .limit(limit);
-        }
-
-        res.json(mangas);
+        const ratedSeries = await MangaSeries.find({ malScore: { $gte: 7.5 } }).select('_id').lean();
+        let volumes = await Manga.find({ series: { $in: ratedSeries.map(item => item._id) }, stock: { $gt: 0 } }).populate('series');
+        if (!volumes.length) volumes = await Manga.find({ stock: { $gt: 0 } }).populate('series').sort({ createdAt: -1 }).limit(limit);
+        res.json(serializedSorted(volumes, limit));
     } catch (error: unknown) {
         console.error('Error fetching top-rated mangas:', error);
         res.status(500).json({ message: 'Error fetching top-rated mangas' });
     }
 };
 
-// Recent additions remain visible even when their inventory is empty.
 export const getRecentArrivals = async (req: Request, res: Response) => {
     try {
         const limit = parseLimit(req.query.limit, 12);
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-        const mangas = await Manga.find({
-            createdAt: { $gte: thirtyDaysAgo }
-        })
-            .sort({ createdAt: -1 })
-            .limit(limit);
-
-        res.json(mangas);
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        const mangas = await Manga.find({ createdAt: { $gte: thirtyDaysAgo } }).populate('series').sort({ createdAt: -1 }).limit(limit);
+        res.json(serializeMangas(mangas));
     } catch (error: unknown) {
         console.error('Error fetching recent arrivals:', error);
         res.status(500).json({ message: 'Error fetching recent arrivals' });
     }
 };
 
-// Get thematic collections
 export const getThematicCollections = async (req: Request, res: Response) => {
     try {
         const { theme } = req.params;
-
-        let genreFilter: string[] = [];
-        let statusFilter: string | null = null;
-        let scoreFilter: number | null = null;
-
-        // Define theme filters
+        const seriesFilter: Record<string, unknown> = {};
         switch (theme) {
             case 'beginner':
-                genreFilter = ['Action', 'Adventure', 'Shounen'];
-                scoreFilter = 7.5;
+                seriesFilter.genre = { $regex: 'Action|Adventure|Shounen', $options: 'i' };
+                seriesFilter.malScore = { $gte: 7.5 };
                 break;
             case 'anime-adaptations':
-                statusFilter = 'Publishing';
-                scoreFilter = 7.0;
+                seriesFilter.status = 'Publishing';
+                seriesFilter.malScore = { $gte: 7.0 };
                 break;
             case 'horror':
-                genreFilter = ['Horror', 'Psychological', 'Thriller'];
+                seriesFilter.genre = { $regex: 'Horror|Psychological|Thriller', $options: 'i' };
                 break;
             default:
                 return res.status(400).json({ message: 'Invalid theme' });
         }
-
-        // Build query
-        const query: Record<string, unknown> = { stock: { $gt: 0 } };
-
-        if (genreFilter.length > 0) {
-            query.genre = { $regex: genreFilter.join('|'), $options: 'i' };
-        }
-        if (statusFilter) {
-            query.status = statusFilter;
-        }
-        if (scoreFilter) {
-            query.malScore = { $gte: scoreFilter };
-        }
-
-        const mangas = await Manga.find(query)
-            .sort({ malScore: -1 })
-            .limit(12);
-
-        res.json(mangas);
+        const series = await MangaSeries.find(seriesFilter).select('_id').lean();
+        const mangas = await Manga.find({ series: { $in: series.map(item => item._id) }, stock: { $gt: 0 } })
+            .populate('series').sort({ createdAt: -1 }).limit(12);
+        res.json(serializedSorted(mangas, 12));
     } catch (error: unknown) {
         console.error('Error fetching thematic collection:', error);
         res.status(500).json({ message: 'Error fetching thematic collection' });
     }
 };
 
-// Get mangas by author
 export const getMangasByAuthor = async (req: Request, res: Response) => {
     try {
         const { author } = req.params;
         const limit = parseLimit(req.query.limit, 12);
-        if (author.length > 100) {
-            return res.status(400).json({ message: 'Author name must be at most 100 characters' });
-        }
-
-        const mangas = await Manga.find({
-            author: { $regex: escapeRegex(author), $options: 'i' },
-            stock: { $gt: 0 }
-        })
-            .sort({ malScore: -1 })
-            .limit(limit);
-
-        res.json(mangas);
+        if (author.length > 100) return res.status(400).json({ message: 'Author name must be at most 100 characters' });
+        const series = await MangaSeries.find({ author: { $regex: escapeRegex(author), $options: 'i' } }).select('_id').lean();
+        const mangas = await Manga.find({ series: { $in: series.map(item => item._id) }, stock: { $gt: 0 } }).populate('series');
+        res.json(serializedSorted(mangas, limit));
     } catch (error: unknown) {
         console.error('Error fetching mangas by author:', error);
         res.status(500).json({ message: 'Error fetching mangas by author' });
     }
 };
 
-// Get top authors
 export const getTopAuthors = async (req: Request, res: Response) => {
     try {
         const limit = parseLimit(req.query.limit, 6);
-
-        // Aggregate to get top authors by manga count
         const authors = await Manga.aggregate([
             { $match: { stock: { $gt: 0 } } },
-            { $group: { _id: '$author', count: { $sum: 1 }, avgScore: { $avg: '$malScore' } } },
+            { $lookup: { from: MangaSeries.collection.name, localField: 'series', foreignField: '_id', as: 'seriesData' } },
+            { $unwind: '$seriesData' },
+            { $group: { _id: '$seriesData.author', count: { $sum: 1 }, avgScore: { $avg: '$seriesData.malScore' } } },
             { $sort: { count: -1 } },
             { $limit: limit }
         ]);
-
         res.json(authors);
     } catch (error: unknown) {
         console.error('Error fetching top authors:', error);
@@ -193,45 +155,34 @@ export const getTopAuthors = async (req: Request, res: Response) => {
     }
 };
 
-// Weekly rentals are the current available proxy for the shop's "most read" ranking.
+const getRentalRanking = async (since: Date, rankingField: 'weeklyRentals' | 'todayRentals', limit: number) => {
+    const grouped = await Rental.aggregate<{ _id: mongoose.Types.ObjectId; count: number }>([
+        { $match: { startDate: { $gte: since } } },
+        { $group: { _id: '$manga', count: { $sum: 1 } } },
+        { $sort: { count: -1, _id: 1 } },
+        { $limit: limit }
+    ]);
+    const mangas = await loadSeriesForVolumeIds(grouped.map(item => item._id));
+    const countById = new Map(grouped.map(item => [item._id.toString(), item.count]));
+    return mangas.map(manga => ({ ...manga, [rankingField]: countById.get(String(manga._id)) || 0 }));
+};
+
 export const getMostReadThisWeek = async (req: Request, res: Response) => {
     try {
         const limit = parseLimit(req.query.limit, 10);
-        const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-        const mangas = await Rental.aggregate([
-            { $match: { startDate: { $gte: since } } },
-            { $group: { _id: '$manga', weeklyRentals: { $sum: 1 } } },
-            { $sort: { weeklyRentals: -1, _id: 1 } },
-            { $limit: limit },
-            { $lookup: { from: Manga.collection.name, localField: '_id', foreignField: '_id', as: 'manga' } },
-            { $unwind: '$manga' },
-            { $replaceRoot: { newRoot: { $mergeObjects: ['$manga', { weeklyRentals: '$weeklyRentals' }] } } }
-        ]);
-
-        res.json(mangas);
+        res.json(await getRentalRanking(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), 'weeklyRentals', limit));
     } catch (error: unknown) {
         console.error('Error fetching weekly rental ranking:', error);
         res.status(500).json({ message: 'Error fetching most read' });
     }
 };
 
-// Get manga with the most rentals since the current UTC day began.
 export const getMostRentedToday = async (req: Request, res: Response) => {
     try {
         const limit = parseLimit(req.query.limit, 10);
         const since = new Date();
         since.setUTCHours(0, 0, 0, 0);
-        const mangas = await Rental.aggregate([
-            { $match: { startDate: { $gte: since } } },
-            { $group: { _id: '$manga', todayRentals: { $sum: 1 } } },
-            { $sort: { todayRentals: -1, _id: 1 } },
-            { $limit: limit },
-            { $lookup: { from: Manga.collection.name, localField: '_id', foreignField: '_id', as: 'manga' } },
-            { $unwind: '$manga' },
-            { $replaceRoot: { newRoot: { $mergeObjects: ['$manga', { todayRentals: '$todayRentals' }] } } }
-        ]);
-
-        res.json(mangas);
+        res.json(await getRentalRanking(since, 'todayRentals', limit));
     } catch (error: unknown) {
         console.error('Error fetching daily rental ranking:', error);
         res.status(500).json({ message: 'Error fetching most rented' });

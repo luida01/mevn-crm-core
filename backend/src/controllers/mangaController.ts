@@ -1,9 +1,11 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
-import Manga, { IManga } from '../models/Manga';
+import Manga from '../models/Manga';
+import MangaSeries, { IMangaSeries } from '../models/MangaSeries';
 import Rental from '../models/Rental';
 import axios from 'axios';
 import { pickRequestFields } from '../utils/requestBody';
+import { resolveMangaSeries, serializeManga, serializeMangas } from '../services/mangaSeries';
 
 interface JikanMangaSearchResult {
     mal_id: number;
@@ -132,15 +134,20 @@ const normalizeMangaDexManga = (item: MangaDexSearchResult) => {
     };
 };
 
-type MangaInput = Pick<IManga,
-    'title' | 'volume' | 'author' | 'genre' | 'isbn' | 'price' | 'rentalPrice' | 'stock'
-    | 'coverImage' | 'description' | 'publishedYear' | 'status' | 'malScore' | 'malId' | 'mangaDexId'
->;
+interface MangaInput {
+    title: string; volume: number; author: string; genre: string; isbn?: string;
+    price: number; rentalPrice: number; stock: number; coverImage?: string;
+    description?: string; publishedYear?: number; status?: string; malScore?: number;
+    malId?: string; mangaDexId?: string; alternativeTitles?: string[];
+}
 
 const mangaFields: readonly (keyof MangaInput)[] = [
     'title', 'volume', 'author', 'genre', 'isbn', 'price', 'rentalPrice', 'stock',
-    'coverImage', 'description', 'publishedYear', 'status', 'malScore', 'malId', 'mangaDexId'
+    'coverImage', 'description', 'publishedYear', 'status', 'malScore', 'malId', 'mangaDexId', 'alternativeTitles'
 ] as const;
+
+const seriesFieldNames = ['title', 'author', 'genre', 'description', 'publishedYear', 'status', 'malScore', 'malId', 'mangaDexId', 'alternativeTitles'] as const;
+const volumeFieldNames = ['volume', 'isbn', 'coverImage', 'price', 'rentalPrice', 'stock'] as const;
 
 // Get all mangas
 export const addMangaStock = async (req: Request, res: Response) => {
@@ -149,16 +156,17 @@ export const addMangaStock = async (req: Request, res: Response) => {
         res.status(400).json({ message: 'Indica una cantidad entera entre 1 y 100000.' }); return;
     }
     try {
-        const manga = await Manga.findByIdAndUpdate(req.params.id, { $inc: { stock: quantity } }, { new: true, runValidators: true });
+        await Manga.findByIdAndUpdate(req.params.id, { $inc: { stock: quantity } }, { new: true, runValidators: true });
+        const manga = await Manga.findById(req.params.id).populate('series');
         if (!manga) { res.status(404).json({ message: 'Manga not found' }); return; }
-        res.json(manga);
+        res.json(serializeManga(manga));
     } catch (error: unknown) { console.error(error); res.status(500).json({ message: 'No se pudo añadir stock.' }); }
 };
 
 export const getMangas = async (req: Request, res: Response) => {
     try {
-        const mangas = await Manga.find().sort({ createdAt: -1 });
-        res.json(mangas);
+        const mangas = await Manga.find().populate('series').sort({ createdAt: -1 });
+        res.json(serializeMangas(mangas));
     } catch (error: unknown) {
         console.error('Error fetching mangas:', error);
         res.status(500).json({ message: 'Error fetching mangas' });
@@ -173,9 +181,9 @@ export const getManga = async (req: Request, res: Response) => {
     }
 
     try {
-        const manga = await Manga.findById(req.params.id);
+        const manga = await Manga.findById(req.params.id).populate('series');
         if (!manga) return res.status(404).json({ message: 'Manga not found' });
-        res.json(manga);
+        res.json(serializeManga(manga));
     } catch (error: unknown) {
         console.error('Error fetching manga:', error);
         res.status(500).json({ message: 'Error fetching manga' });
@@ -189,10 +197,28 @@ export const createManga = async (req: Request, res: Response) => {
         res.status(400).json({ message: 'A manga object is required' });
         return;
     }
+    if (typeof mangaData.title !== 'string' || !mangaData.title.trim()
+        || typeof mangaData.author !== 'string' || !mangaData.author.trim()
+        || typeof mangaData.genre !== 'string' || !mangaData.genre.trim()
+        || typeof mangaData.volume !== 'number' || typeof mangaData.price !== 'number'
+        || typeof mangaData.rentalPrice !== 'number' || typeof mangaData.stock !== 'number') {
+        res.status(400).json({ message: 'Title, author, genre, volume, prices and stock are required' });
+        return;
+    }
 
     try {
-        const manga = await Manga.create(mangaData);
-        res.status(201).json(manga);
+        const series = await resolveMangaSeries(mangaData as MangaInput);
+        const manga = await Manga.create({
+            series: series._id,
+            volume: mangaData.volume,
+            isbn: mangaData.isbn,
+            coverImage: mangaData.coverImage,
+            price: mangaData.price,
+            rentalPrice: mangaData.rentalPrice,
+            stock: mangaData.stock
+        });
+        await manga.populate('series');
+        res.status(201).json(serializeManga(manga));
     } catch (error: unknown) {
         if (error instanceof mongoose.Error.ValidationError) {
             res.status(400).json({ message: error.message });
@@ -217,13 +243,32 @@ export const updateManga = async (req: Request, res: Response) => {
     }
 
     try {
-        const updatedManga = await Manga.findByIdAndUpdate(
-            req.params.id,
-            { $set: mangaData },
-            { new: true, runValidators: true }
-        );
+        const current = await Manga.findById(req.params.id).populate('series');
+        if (!current) return res.status(404).json({ message: 'Manga not found' });
+        const currentSeries = current.series as IMangaSeries;
+        const seriesPatch = Object.fromEntries(seriesFieldNames
+            .filter(field => mangaData[field] !== undefined)
+            .map(field => [field, mangaData[field]]));
+        let seriesId = currentSeries._id;
+        if (Object.keys(seriesPatch).length) {
+            if (seriesPatch.title !== undefined) {
+                const seriesFields = { ...currentSeries.toObject(), ...seriesPatch } as Pick<MangaInput, 'title' | 'author' | 'genre'> & Partial<MangaInput>;
+                const series = await resolveMangaSeries(seriesFields);
+                seriesId = series._id;
+            } else {
+                const series = await MangaSeries.findByIdAndUpdate(currentSeries._id, { $set: seriesPatch }, { new: true, runValidators: true });
+                if (!series) return res.status(409).json({ message: 'The manga series no longer exists' });
+                seriesId = series._id;
+            }
+        }
+        const volumePatch = Object.fromEntries(volumeFieldNames
+            .filter(field => mangaData[field] !== undefined)
+            .map(field => [field, mangaData[field]]));
+        const update: Record<string, unknown> = { ...volumePatch };
+        if (seriesId.toString() !== currentSeries._id.toString()) update.series = seriesId;
+        const updatedManga = await Manga.findByIdAndUpdate(req.params.id, { $set: update }, { new: true, runValidators: true }).populate('series');
         if (!updatedManga) return res.status(404).json({ message: 'Manga not found' });
-        res.json(updatedManga);
+        res.json(serializeManga(updatedManga));
     } catch (error: unknown) {
         if (error instanceof mongoose.Error.ValidationError) {
             res.status(400).json({ message: error.message });
@@ -266,10 +311,9 @@ export const searchMangas = async (req: Request, res: Response) => {
             return;
         }
 
-        const mangas = await Manga.find({
-            $text: { $search: q.trim() }
-        });
-        res.json(mangas);
+        const series = await MangaSeries.find({ $text: { $search: q.trim() } }).select('_id');
+        const mangas = await Manga.find({ series: { $in: series.map(item => item._id) } }).populate('series');
+        res.json(serializeMangas(mangas));
     } catch (error: unknown) {
         console.error('Error searching mangas:', error);
         res.status(500).json({ message: 'Error searching mangas' });

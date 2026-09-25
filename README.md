@@ -70,6 +70,19 @@ mevn-crm-manga/
 - Docker & Docker Compose (optional)
 - MongoDB (local or Atlas)
 
+### Series and volume data model
+
+Series metadata (title, author, genres, publication details and external IDs) is stored once in `MangaSeries`. Each `Manga` document represents a physical volume and keeps its volume number, ISBN, individual cover, prices and stock. Existing flat API payloads remain compatible with both frontends.
+
+Before upgrading an existing database to this version, run the idempotent migration with the backend environment configured:
+
+```bash
+cd backend
+npm run migrate:series
+```
+
+The migration groups records by normalized title, records differing authors as aliases, and leaves volume numbers, covers, prices and stock on the original volume documents.
+
 ### Installation
 
 1. **Clone the repository**
