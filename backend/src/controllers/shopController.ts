@@ -2,22 +2,25 @@ import { Request, Response } from 'express';
 import Manga from '../models/Manga';
 import Rental from '../models/Rental';
 import { escapeRegex, parseLimit } from '../utils/requestBody';
-import axios from 'axios';
-
-// Cache for MAL API responses (5 minutes)
-const cache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-const getCachedData = (key: string) => {
-    const cached = cache.get(key);
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-        return cached.data;
+export const getCatalog = async (req: Request, res: Response) => {
+    const search = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    if (search.length > 100) return res.status(400).json({ message: 'Search must be at most 100 characters' });
+    const page = Math.max(1, Math.min(100000, Number.parseInt(String(req.query.page || '1'), 10) || 1));
+    const limit = parseLimit(req.query.limit, 12, 48);
+    const query: Record<string, unknown> = {};
+    if (search) query.$or = ['title', 'author', 'genre'].map(field => ({ [field]: { $regex: escapeRegex(search), $options: 'i' } }));
+    if (req.query.availability === 'available') query.stock = { $gt: 0 };
+    if (req.query.availability === 'unavailable') query.stock = 0;
+    try {
+        const [items, total] = await Promise.all([
+            Manga.find(query).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit),
+            Manga.countDocuments(query)
+        ]);
+        res.set('Cache-Control', 'no-store').json({ items, total, page, pages: Math.ceil(total / limit) });
+    } catch (error: unknown) {
+        console.error('Error loading catalog:', error);
+        res.status(500).json({ message: 'Could not load catalog' });
     }
-    return null;
-};
-
-const setCachedData = (key: string, data: any) => {
-    cache.set(key, { data, timestamp: Date.now() });
 };
 
 // Get top-rated mangas (by MAL score >= 7.5, in stock)
@@ -47,7 +50,7 @@ export const getTopRatedMangas = async (req: Request, res: Response) => {
     }
 };
 
-// Get recent arrivals (last 30 days, in stock)
+// Recent additions remain visible even when their inventory is empty.
 export const getRecentArrivals = async (req: Request, res: Response) => {
     try {
         const limit = parseLimit(req.query.limit, 12);
@@ -55,8 +58,7 @@ export const getRecentArrivals = async (req: Request, res: Response) => {
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
         const mangas = await Manga.find({
-            createdAt: { $gte: thirtyDaysAgo },
-            stock: { $gt: 0 }
+            createdAt: { $gte: thirtyDaysAgo }
         })
             .sort({ createdAt: -1 })
             .limit(limit);
@@ -72,13 +74,6 @@ export const getRecentArrivals = async (req: Request, res: Response) => {
 export const getThematicCollections = async (req: Request, res: Response) => {
     try {
         const { theme } = req.params;
-        const cacheKey = `collection_${theme}`;
-
-        // Check cache first
-        const cached = getCachedData(cacheKey);
-        if (cached) {
-            return res.json(cached);
-        }
 
         let genreFilter: string[] = [];
         let statusFilter: string | null = null;
@@ -102,7 +97,7 @@ export const getThematicCollections = async (req: Request, res: Response) => {
         }
 
         // Build query
-        const query: any = { stock: { $gt: 0 } };
+        const query: Record<string, unknown> = { stock: { $gt: 0 } };
 
         if (genreFilter.length > 0) {
             query.genre = { $regex: genreFilter.join('|'), $options: 'i' };
@@ -117,9 +112,6 @@ export const getThematicCollections = async (req: Request, res: Response) => {
         const mangas = await Manga.find(query)
             .sort({ malScore: -1 })
             .limit(12);
-
-        // Cache the result
-        setCachedData(cacheKey, mangas);
 
         res.json(mangas);
     } catch (error: unknown) {

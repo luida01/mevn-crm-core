@@ -20,7 +20,7 @@
         <a :href="sectionHref('colecciones')" @click="mobileMenuOpen = false">Colecciones</a>
         <a :href="sectionHref('como-funciona')" @click="mobileMenuOpen = false">Alquileres</a>
         <router-link to="/faq" :aria-current="route.path === '/faq' ? 'page' : undefined" @click="mobileMenuOpen = false">Ayuda</router-link>
-        <a class="site-nav__cta" :href="sectionHref('novedades')" @click="mobileMenuOpen = false">Encuentra tu manga <span aria-hidden="true">↗</span></a>
+        <a class="site-nav__cta" :href="sectionHref('catalogo')" @click="mobileMenuOpen = false">Encuentra tu manga <span aria-hidden="true">↗</span></a>
       </nav>
     </div>
   </header>

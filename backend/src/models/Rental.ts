@@ -9,6 +9,7 @@ export interface IRental extends Document {
     status: 'ACTIVE' | 'RETURNED' | 'LATE';
     cost: number;
     isPaid: boolean;
+    paidAt?: Date;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -25,7 +26,8 @@ const RentalSchema: Schema = new Schema({
         default: 'ACTIVE'
     },
     cost: { type: Number, required: true, min: 0 },
-    isPaid: { type: Boolean, default: false }
+    isPaid: { type: Boolean, default: false },
+    paidAt: { type: Date }
 }, { timestamps: true });
 
 RentalSchema.index({ status: 1, dueDate: 1 });

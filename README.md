@@ -114,6 +114,14 @@ mevn-crm-manga/
 
 ## 🛠️ Tech Stack
 
+### Admin workflows and checks
+
+- Pipeline groups rentals into active, overdue, returned/unpaid and completed. Return and payment actions drive those stages.
+- Invoicing records payments and issues one printable internal receipt per rental. Receipts preserve issuer, customer, manga and amount snapshots; payment status stays linked to the rental. These are not fiscal invoices and do not process online payments.
+- Settings stores business contact details and suggested rental days. Updates affect future receipts and new rental forms.
+- The public catalog includes every volume, even when stock is zero; search and availability filters are available. Remote imports start with zero stock and zero prices until staff updates them.
+- With MongoDB running locally, run `npm run check:workflows` from `backend`. It builds the API, starts an isolated instance, checks customer/inventory/rental/payment/receipt/settings flows and deletes its own randomly named test database. `TEST_MONGODB_URI` optionally overrides the MongoDB server; no application records are used.
+
 ### Backend
 - **Runtime**: Node.js with TypeScript
 - **Framework**: Express 5.1.0

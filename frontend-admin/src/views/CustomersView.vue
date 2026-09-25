@@ -2,46 +2,18 @@
 import { ref } from 'vue';
 import CustomerList from '../components/CustomerList.vue';
 import CustomerForm from '../components/CustomerForm.vue';
+import { useCustomerStore } from '../stores/customerStore';
 import type { Customer } from '../types/Customer';
-
+const store = useCustomerStore();
 const showForm = ref(false);
-const editingCustomer = ref<Customer | null>(null);
-
-const handleEdit = (customer: Customer) => {
-  editingCustomer.value = customer;
-  showForm.value = true;
-};
-
-const closeForm = () => {
-  showForm.value = false;
-  editingCustomer.value = null;
-};
+const editing = ref<Customer | null>(null);
+const open = (customer: Customer | null = null) => { editing.value = customer; showForm.value = true; };
 </script>
-
 <template>
-  <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="sm:flex sm:items-center">
-      <div class="sm:flex-auto">
-        <h1 class="text-xl font-semibold text-gray-900">Customers</h1>
-        <p class="mt-2 text-sm text-gray-700">A list of all the customers in your account including their name, title, email and role.</p>
-      </div>
-      <div class="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
-        <button @click="showForm = !showForm" type="button" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto">
-          {{ showForm ? 'Hide Form' : 'Add Customer' }}
-        </button>
-      </div>
-    </div>
-    
-    <div v-if="showForm" class="mt-8">
-      <CustomerForm :customerToEdit="editingCustomer" @close="closeForm" />
-    </div>
-
-    <div class="mt-8 flex flex-col">
-      <div class="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-        <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-          <CustomerList @edit="handleEdit" />
-        </div>
-      </div>
-    </div>
+  <div class="admin-page">
+    <header class="admin-page-header"><div><p class="admin-eyebrow">Relaciones</p><h1>Clientes</h1><p>Datos de contacto, cuentas activas e historial de alquileres.</p></div><button class="admin-button" @click="open()">+ Nuevo cliente</button></header>
+    <div class="admin-toolbar"><label class="admin-search"><span class="sr-only">Buscar cliente</span><input v-model="store.searchQuery" type="search" placeholder="Nombre, correo o teléfono"></label><label><span class="sr-only">Estado del cliente</span><select v-model="store.statusFilter"><option value="all">Todos los clientes</option><option value="renting">Con alquileres</option><option value="overdue">Con vencidos</option><option value="not-renting">Sin alquileres activos</option><option value="inactive">Cuentas inactivas</option></select></label><button class="admin-button secondary" :disabled="store.loading" @click="store.fetchCustomers()">Actualizar</button></div>
+    <CustomerList @edit="open" />
+    <CustomerForm v-if="showForm" :customer-to-edit="editing" @close="showForm = false" />
   </div>
 </template>

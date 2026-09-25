@@ -17,7 +17,7 @@
         <h1 id="shop-hero-title" class="shop-hero__title">Historias que te llevan <span>a otros mundos.</span></h1>
         <p class="shop-hero__description">Descubre tu próxima serie favorita. Explora títulos y consulta los precios y la disponibilidad de cada volumen.</p>
         <div class="shop-hero__actions">
-          <a class="gooey-link" href="#novedades">
+          <a class="gooey-link" href="#catalogo">
             <span class="gooey-link__liquid" aria-hidden="true"><span class="gooey-link__bubble gooey-link__bubble--one"></span><span class="gooey-link__bubble gooey-link__bubble--two"></span></span>
             <span class="gooey-link__label">Explorar mangas <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
           </a>
@@ -50,6 +50,7 @@
     </section>
 
     <div class="container mx-auto px-4 py-12 storefront-content">
+      <CatalogBrowser @select-manga="openMangaDetails" />
 
       <!-- Top Rated Carousel -->
       <section id="tendencias" class="mb-16 home-section">
@@ -89,6 +90,7 @@
             <div class="arrival-card__body">
               <h3>{{ manga.title }}</h3>
               <p class="arrival-card__author">{{ manga.author }}</p>
+              <p class="arrival-card__author">Vol. {{ manga.volume }} · {{ manga.stock > 0 ? 'Disponible' : 'Sin stock' }}</p>
               <div class="arrival-card__prices">
                 <span>Alquiler · ${{ manga.rentalPrice }} / día</span>
                 <span>Compra · ${{ manga.price }}</span>
@@ -227,6 +229,7 @@ import ShopFooter from '../components/ShopFooter.vue';
 import ShopHeader from '../components/ShopHeader.vue';
 import ShopMangaDialog from '../components/ShopMangaDialog.vue';
 import DemoCheckoutDialog from '../components/DemoCheckoutDialog.vue';
+import CatalogBrowser from '../components/CatalogBrowser.vue';
 import api from '../services/api';
 
 const store = useShopStore();

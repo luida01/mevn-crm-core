@@ -4,15 +4,13 @@ import Rental from '../models/Rental';
 import Customer from '../models/Customer';
 import Manga from '../models/Manga';
 import { getErrorMessage } from '../utils/requestBody';
+import { refreshOverdueRentals } from '../services/rentalStatus';
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 export const getRentals = async (_req: Request, res: Response) => {
     try {
-        await Rental.updateMany(
-            { status: 'ACTIVE', dueDate: { $lt: new Date() } },
-            { $set: { status: 'LATE' } }
-        );
+        await refreshOverdueRentals();
 
         const rentals = await Rental.find()
             .populate('customer', 'firstName lastName email')
@@ -87,8 +85,9 @@ export const createRental = async (req: Request, res: Response) => {
             customer: customerId,
             manga: mangaId,
             dueDate: parsedDueDate,
-            cost: manga.rentalPrice * rentalDays,
-            isPaid: isPaid === true
+            cost: Math.round(manga.rentalPrice * rentalDays * 100) / 100,
+            isPaid: isPaid === true,
+            paidAt: isPaid === true ? new Date() : undefined
         });
 
         res.status(201).json(rental);
@@ -167,6 +166,11 @@ export const togglePayment = async (req: Request, res: Response) => {
         return;
     }
 
+    const requestedState: unknown = req.body?.isPaid;
+    if (requestedState !== undefined && typeof requestedState !== 'boolean') {
+        res.status(400).json({ message: 'isPaid must be a boolean' });
+        return;
+    }
     try {
         const currentRental = await Rental.findById(req.params.id).select('isPaid');
         if (!currentRental) {
@@ -174,9 +178,14 @@ export const togglePayment = async (req: Request, res: Response) => {
             return;
         }
 
+        const nextState = typeof requestedState === 'boolean' ? requestedState : !currentRental.isPaid;
+        if (nextState === currentRental.isPaid) {
+            res.json(await Rental.findById(req.params.id));
+            return;
+        }
         const rental = await Rental.findOneAndUpdate(
             { _id: req.params.id, isPaid: currentRental.isPaid },
-            { $set: { isPaid: !currentRental.isPaid } },
+            nextState ? { $set: { isPaid: true, paidAt: new Date() } } : { $set: { isPaid: false }, $unset: { paidAt: 1 } },
             { new: true }
         );
         if (!rental) {

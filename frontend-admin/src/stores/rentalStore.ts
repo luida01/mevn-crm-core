@@ -1,66 +1,37 @@
 import { defineStore } from 'pinia';
 import api from '../services/api';
+import { errorMessage } from '../services/errors';
+import type { Rental, RentalInput } from '../types/Rental';
 
 export const useRentalStore = defineStore('rental', {
-    state: () => ({
-        rentals: [] as any[],
-        loading: false,
-        error: null as string | null,
-    }),
+    state: () => ({ rentals: [] as Rental[], loading: false, busy: '', error: null as string | null }),
     actions: {
         async fetchRentals() {
-            this.loading = true;
-            try {
-                const response = await api.get('/rentals');
-                this.rentals = response.data;
-            } catch (err: any) {
-                this.error = err.message || 'Error fetching rentals';
-            } finally {
-                this.loading = false;
-            }
+            this.loading = true; this.error = null;
+            try { this.rentals = (await api.get<Rental[]>('/rentals')).data; return true; }
+            catch (error: unknown) { this.error = errorMessage(error); return false; }
+            finally { this.loading = false; }
         },
-        async createRental(rentalData: any) {
-            this.loading = true;
-            try {
-                const response = await api.post('/rentals', rentalData);
-                this.rentals.unshift(response.data);
-                // Refresh to get populated data or manually populate if complex
-                await this.fetchRentals();
-            } catch (err: any) {
-                this.error = err.response?.data?.message || err.message || 'Error creating rental';
-                throw err; // Re-throw to handle in component
-            } finally {
-                this.loading = false;
-            }
+        async createRental(input: RentalInput) {
+            if (this.busy) return false;
+            this.busy = 'create'; this.error = null;
+            try { await api.post('/rentals', input); await this.fetchRentals(); return true; }
+            catch (error: unknown) { this.error = errorMessage(error); return false; }
+            finally { this.busy = ''; }
         },
         async returnRental(id: string) {
-            this.loading = true;
-            try {
-                const response = await api.put(`/rentals/${id}/return`);
-                const index = this.rentals.findIndex(r => r._id === id);
-                if (index !== -1) {
-                    this.rentals[index] = response.data;
-                    // Refresh to ensure consistency
-                    await this.fetchRentals();
-                }
-            } catch (err: any) {
-                this.error = err.message || 'Error returning rental';
-            } finally {
-                this.loading = false;
-            }
+            if (this.busy) return false;
+            this.busy = id; this.error = null;
+            try { await api.put('/rentals/' + id + '/return'); await this.fetchRentals(); return true; }
+            catch (error: unknown) { this.error = errorMessage(error); return false; }
+            finally { this.busy = ''; }
         },
-        async togglePayment(id: string) {
-            try {
-                const response = await api.put(`/rentals/${id}/payment`);
-                const index = this.rentals.findIndex(r => r._id === id);
-                if (index !== -1) {
-                    this.rentals[index] = response.data;
-                    // Refresh to ensure consistency
-                    await this.fetchRentals();
-                }
-            } catch (err: any) {
-                this.error = err.message || 'Error updating payment status';
-            }
+        async setPayment(id: string, isPaid: boolean) {
+            if (this.busy) return false;
+            this.busy = id; this.error = null;
+            try { await api.put('/rentals/' + id + '/payment', { isPaid }); await this.fetchRentals(); return true; }
+            catch (error: unknown) { this.error = errorMessage(error); return false; }
+            finally { this.busy = ''; }
         }
     }
 });

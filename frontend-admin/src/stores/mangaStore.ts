@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import api from '../services/api';
 import axios from 'axios';
+import { errorMessage } from '../services/errors';
 import type { Manga, MangaInput, MangaVolumeSearchResponse, RemoteMangaResult } from '../types/Manga';
 
 export const useMangaStore = defineStore('manga', {
@@ -8,6 +9,7 @@ export const useMangaStore = defineStore('manga', {
         mangas: [] as Manga[],
         currentManga: null as Manga | null,
         loading: false,
+        saving: false,
         error: null as string | null,
         searchQuery: '',
         // Filters
@@ -55,7 +57,7 @@ export const useMangaStore = defineStore('manga', {
                 result = result.filter(m => {
                     const stock = m.stock || 0;
                     switch (state.stockFilter) {
-                        case 'inStock': return stock > 5;
+                        case 'inStock': return stock > 0;
                         case 'lowStock': return stock > 0 && stock <= 5;
                         case 'outOfStock': return stock === 0;
                         default: return true;
@@ -79,6 +81,7 @@ export const useMangaStore = defineStore('manga', {
     actions: {
         async fetchMangas() {
             this.loading = true;
+            this.error = null;
             try {
                 const response = await api.get('/mangas');
                 this.mangas = response.data;
@@ -89,37 +92,61 @@ export const useMangaStore = defineStore('manga', {
             }
         },
         async createManga(manga: MangaInput) {
-            this.loading = true;
+            if (this.saving) return false;
+            this.saving = true;
+            this.error = null;
             try {
                 const response = await api.post('/mangas', manga);
                 this.mangas.unshift(response.data); // Add to top
-            } catch (err: any) {
-                this.error = err.message || 'Error creating manga';
+                return true;
+            } catch (err: unknown) {
+                this.error = errorMessage(err);
+                return false;
             } finally {
-                this.loading = false;
+                this.saving = false;
             }
         },
         async updateManga(id: string, mangaData: Partial<Manga>) {
-            this.loading = true;
+            if (this.saving) return false;
+            this.saving = true;
+            this.error = null;
             try {
                 const response = await api.put(`/mangas/${id}`, mangaData);
                 const index = this.mangas.findIndex(m => m._id === id);
                 if (index !== -1) {
                     this.mangas[index] = response.data;
                 }
-            } catch (err: any) {
-                this.error = err.message || 'Error updating manga';
+                return true;
+            } catch (err: unknown) {
+                this.error = errorMessage(err);
+                return false;
             } finally {
-                this.loading = false;
+                this.saving = false;
             }
         },
         async deleteManga(id: string) {
+            if (this.saving) return false;
+            this.saving = true;
+            this.error = null;
             try {
                 await api.delete(`/mangas/${id}`);
                 this.mangas = this.mangas.filter(m => m._id !== id);
-            } catch (err: any) {
-                this.error = err.message || 'Error deleting manga';
-            }
+                return true;
+            } catch (err: unknown) {
+                this.error = errorMessage(err);
+                return false;
+            } finally { this.saving = false; }
+        },
+        async addStock(id: string, quantity: number) {
+            if (this.saving) return false;
+            this.saving = true; this.error = null;
+            try {
+                const manga = (await api.put<Manga>('/mangas/' + id + '/stock', { quantity })).data;
+                const index = this.mangas.findIndex(item => item._id === id);
+                if (index >= 0) this.mangas[index] = manga;
+                return true;
+            } catch (err: unknown) { this.error = errorMessage(err); return false; }
+            finally { this.saving = false; }
         },
         async searchRemoteMangas(query: string) {
             this.loading = true;

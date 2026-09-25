@@ -1,41 +1,31 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router';
-
-const router = useRouter();
-
+import { computed, onMounted } from 'vue';
+import { useCustomerStore } from '../stores/customerStore';
+import { useMangaStore } from '../stores/mangaStore';
+import { useRentalStore } from '../stores/rentalStore';
+import { rentalStatus, money } from '../services/format';
+const customers = useCustomerStore(); const mangas = useMangaStore(); const rentals = useRentalStore();
 const apps = [
-  { name: 'Customers', icon: '👥', route: '/customers', color: 'bg-blue-500' },
-  { name: 'Mangas', icon: '📚', route: '/mangas', color: 'bg-orange-500' },
-  { name: 'Rentals', icon: '📖', route: '/rentals', color: 'bg-indigo-500' },
-  { name: 'Pipeline', icon: '📊', route: '/pipeline', color: 'bg-purple-500', disabled: true },
-  { name: 'Invoicing', icon: '💰', route: '/invoicing', color: 'bg-green-500', disabled: true },
-  { name: 'Settings', icon: '⚙️', route: '/settings', color: 'bg-gray-500', disabled: true },
+  { name: 'Clientes', icon: '👥', route: '/customers', description: 'Contacto e historial de tus lectores.' },
+  { name: 'Mangas', icon: '📚', route: '/mangas', description: 'Volúmenes, precios y existencias.' },
+  { name: 'Alquileres', icon: '📖', route: '/rentals', description: 'Altas, devoluciones y vencimientos.' },
+  { name: 'Pipeline', icon: '📊', route: '/pipeline', description: 'Seguimiento de cada alquiler.' },
+  { name: 'Cobros', icon: '🧾', route: '/invoicing', description: 'Pagos y comprobantes internos.' },
+  { name: 'Configuración', icon: '⚙️', route: '/settings', description: 'Datos del negocio y preferencias.' }
 ];
-
-const navigateTo = (route: string) => {
-  router.push(route);
-};
+const active = computed(() => rentals.rentals.filter(r => r.status !== 'RETURNED').length);
+const late = computed(() => rentals.rentals.filter(r => rentalStatus(r) === 'LATE').length);
+const pending = computed(() => rentals.rentals.filter(r => !r.isPaid).reduce((sum, r) => sum + r.cost, 0));
+const load = () => Promise.all([customers.fetchCustomers(), mangas.fetchMangas(), rentals.fetchRentals()]);
+onMounted(load);
 </script>
-
 <template>
-  <div class="min-h-screen bg-gray-100 p-8">
-    <div class="max-w-4xl mx-auto">
-      <h2 class="text-2xl font-light text-gray-600 mb-8">Apps</h2>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-        <div 
-          v-for="app in apps" 
-          :key="app.name"
-          @click="!app.disabled && navigateTo(app.route)"
-          class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer p-6 flex flex-col items-center justify-center aspect-square group"
-          :class="{ 'opacity-50 cursor-not-allowed': app.disabled }"
-        >
-          <div :class="`w-16 h-16 rounded-lg ${app.color} flex items-center justify-center text-3xl text-white mb-4 shadow-sm group-hover:scale-110 transition-transform`">
-            {{ app.icon }}
-          </div>
-          <span class="text-gray-700 font-medium">{{ app.name }}</span>
-          <span v-if="app.disabled" class="text-xs text-gray-400 mt-1">(Coming Soon)</span>
-        </div>
-      </div>
-    </div>
+  <div class="admin-page">
+    <header class="admin-page-header"><div><p class="admin-eyebrow">MangaGo · Administración</p><h1>Tu tienda, al día.</h1><p>Inventario, lectores y operaciones en un mismo lugar.</p></div><button class="admin-button secondary" :disabled="customers.loading || mangas.loading || rentals.loading" @click="load">Actualizar</button></header>
+    <p v-if="customers.error || mangas.error || rentals.error" class="admin-alert" role="alert">{{ customers.error || mangas.error || rentals.error }}</p>
+    <p v-if="customers.loading || mangas.loading || rentals.loading" class="admin-muted" role="status">Actualizando resumen…</p>
+    <div class="admin-stats"><article><span>Clientes</span><strong>{{ customers.customers.length }}</strong></article><article><span>Volúmenes</span><strong>{{ mangas.mangas.length }}</strong></article><article><span>En alquiler</span><strong>{{ active }}</strong></article><article><span>Por cobrar</span><strong>{{ money(pending) }}</strong></article></div>
+    <router-link v-if="late" class="admin-alert block" to="/rentals?status=LATE">{{ late }} alquiler(es) vencido(s). Revisar devoluciones →</router-link>
+    <div class="admin-app-grid"><router-link v-for="app in apps" :key="app.route" :to="app.route" class="admin-app-card"><span aria-hidden="true">{{ app.icon }}</span><h2>{{ app.name }}</h2><p>{{ app.description }}</p><b aria-hidden="true">↗</b></router-link></div>
   </div>
 </template>

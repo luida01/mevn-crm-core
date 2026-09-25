@@ -5,9 +5,16 @@ import CustomersView from '../views/CustomersView.vue';
 import MangaListView from '../views/MangaListView.vue';
 import RentalsView from '../views/RentalsView.vue';
 import LoginView from '../views/LoginView.vue';
+import PipelineView from '../views/PipelineView.vue';
+import InvoicingView from '../views/InvoicingView.vue';
+import SettingsView from '../views/SettingsView.vue';
 import { isAuthenticated } from '../services/auth';
 
 const routes: RouteRecordRaw[] = [
+    { path: '/pipeline', name: 'pipeline', component: PipelineView, meta: { requiresAuth: true } },
+    { path: '/invoicing', name: 'invoicing', component: InvoicingView, meta: { requiresAuth: true } },
+    { path: '/settings', name: 'settings', component: SettingsView, meta: { requiresAuth: true } },
+    { path: '/:pathMatch(.*)*', redirect: '/' },
     {
         path: '/login',
         name: 'login',

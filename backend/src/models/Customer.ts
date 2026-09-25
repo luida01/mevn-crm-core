@@ -17,13 +17,13 @@ export interface ICustomer extends Document {
 const CustomerSchema: Schema = new Schema({
     firstName: { type: String, required: true, trim: true, maxlength: 100 },
     lastName: { type: String, required: true, trim: true, maxlength: 100 },
-    email: { type: String, required: true, unique: true, trim: true, lowercase: true, maxlength: 254 },
+    email: { type: String, required: true, unique: true, trim: true, lowercase: true, maxlength: 254, match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
     phone: { type: String, trim: true, maxlength: 40 },
     isActive: { type: Boolean, default: true },
     address: {
-        street: { type: String },
-        city: { type: String },
-        zip: { type: String }
+        street: { type: String, trim: true, maxlength: 300 },
+        city: { type: String, trim: true, maxlength: 100 },
+        zip: { type: String, trim: true, maxlength: 20 }
     },
     createdAt: { type: Date, default: Date.now }
 }, {

@@ -1,117 +1,31 @@
 <script setup lang="ts">
-import { onMounted, computed, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useCustomerStore } from '../stores/customerStore';
-import { storeToRefs } from 'pinia';
-
+import type { Customer } from '../types/Customer';
+const emit = defineEmits<{ edit: [customer: Customer] }>();
 const store = useCustomerStore();
-const { loading } = storeToRefs(store);
-const filteredCustomers = computed(() => store.filteredCustomers);
-
-// Track which customer is pending deletion
-const pendingDeleteId = ref<string | null>(null);
-
-onMounted(() => {
-  store.fetchCustomers();
-});
-
-const requestDelete = (id: string) => {
-  pendingDeleteId.value = id;
-};
-
-const cancelDelete = () => {
-  pendingDeleteId.value = null;
-};
-
-const confirmDelete = async () => {
-  if (pendingDeleteId.value) {
-    await store.deleteCustomer(pendingDeleteId.value);
-    pendingDeleteId.value = null;
-  }
-};
+const pendingDelete = ref('');
+const remove = async () => { if (await store.deleteCustomer(pendingDelete.value)) pendingDelete.value = ''; };
+const activeCount = (customer: Customer) => customer.rentals?.filter(r => r.status !== 'RETURNED').length || 0;
+const lateCount = (customer: Customer) => customer.rentals?.filter(r => r.status !== 'RETURNED' && new Date(r.dueDate).getTime() < Date.now()).length || 0;
+onMounted(() => store.fetchCustomers());
 </script>
-
 <template>
-  <div class="bg-white shadow-md rounded-lg overflow-hidden">
-    <div v-if="store.error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-      <strong class="font-bold">Error!</strong>
-      <span class="block sm:inline">{{ store.error }}</span>
-      <span class="absolute top-0 bottom-0 right-0 px-4 py-3" @click="store.error = null">
-        <svg class="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
-      </span>
-    </div>
-
-    <div v-if="loading" class="p-4 text-center text-gray-500">Loading customers...</div>
-    
-    <table v-else class="min-w-full divide-y divide-gray-200">
-      <thead class="bg-gray-50">
-        <tr>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rentals</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-          <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-        </tr>
-      </thead>
-      <tbody class="bg-white divide-y divide-gray-200">
-        <tr v-for="customer in filteredCustomers" :key="customer._id">
-          <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm font-medium text-gray-900">{{ customer.firstName }} {{ customer.lastName }}</div>
-            <div class="text-xs text-gray-500">{{ customer.address?.city }}</div>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm text-gray-900">{{ customer.email }}</div>
-            <div class="text-xs text-gray-500">{{ customer.phone || '-' }}</div>
-          </td>
-          <td class="px-6 py-4">
-            <div class="text-sm text-gray-900">
-              <template v-if="customer.rentals && customer.rentals.length > 0">
-                <ul class="list-disc list-inside">
-                  <li v-for="rental in customer.rentals" :key="rental._id">
-                    {{ rental.manga ? rental.manga.title : 'Unknown Manga' }}
-                    <span class="text-xs font-semibold ml-1" 
-                          :class="{
-                            'text-green-600': rental.status === 'ACTIVE',
-                            'text-red-600': rental.status === 'LATE',
-                            'text-gray-500': rental.status === 'RETURNED'
-                          }">
-                      ({{ rental.status }})
-                    </span>
-                  </li>
-                </ul>
-              </template>
-              <span v-else class="text-gray-500">-</span>
-            </div>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-              :class="{
-                'bg-green-100 text-green-800': customer.rentals && customer.rentals.some(r => r.status === 'ACTIVE'),
-                'bg-red-100 text-red-800': customer.rentals && customer.rentals.some(r => r.status === 'LATE'),
-                'bg-gray-100 text-gray-800': !customer.rentals || customer.rentals.every(r => r.status === 'RETURNED')
-              }">
-              {{ 
-                customer.rentals && customer.rentals.some(r => r.status === 'LATE') ? 'Overdue' :
-                customer.rentals && customer.rentals.some(r => r.status === 'ACTIVE') ? 'Renting' : 
-                'Not Renting' 
-              }}
-            </span>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-            <button @click="$emit('edit', customer)" class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</button>
-            <!-- Inline Delete Confirmation -->
-            <template v-if="pendingDeleteId === customer._id">
-              <button @click="confirmDelete" class="text-white bg-red-600 hover:bg-red-700 px-2 py-1 rounded text-xs mr-1">Confirm</button>
-              <button @click="cancelDelete" class="text-gray-600 bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-xs">Cancel</button>
-            </template>
-            <button v-else @click="requestDelete(customer._id)" class="text-red-600 hover:text-red-900">Delete</button>
-          </td>
-        </tr>
-        <tr v-if="filteredCustomers.length === 0">
-          <td colspan="5" class="px-6 py-4 text-center text-gray-500">
-            {{ store.searchQuery ? 'No customers match your search.' : 'No customers found.' }}
-          </td>
-        </tr>
-      </tbody>
+  <p v-if="store.error" class="admin-alert" role="alert">{{ store.error }}</p>
+  <p v-if="store.loading" class="admin-empty" role="status">Cargando clientes…</p>
+  <div v-else class="admin-table-wrap">
+    <table class="admin-table"><thead><tr><th>Cliente</th><th>Contacto</th><th>Alquileres</th><th>Cuenta</th><th>Acciones</th></tr></thead>
+      <tbody><tr v-for="customer in store.filteredCustomers" :key="customer._id">
+        <td><strong>{{ customer.firstName }} {{ customer.lastName }}</strong><small>{{ customer.address?.city }}</small></td>
+        <td>{{ customer.email }}<small>{{ customer.phone || 'Sin teléfono' }}</small></td>
+        <td><router-link :to="{ path: '/rentals', query: { customer: customer._id } }">{{ activeCount(customer) }} en curso · {{ customer.rentals?.length || 0 }} total</router-link><small v-if="lateCount(customer)" class="admin-danger">{{ lateCount(customer) }} vencidos</small></td>
+        <td><span class="admin-badge" :class="customer.isActive ? 'good' : ''">{{ customer.isActive ? 'Activo' : 'Inactivo' }}</span></td>
+        <td><div class="admin-actions">
+          <button class="admin-text-button" @click="emit('edit', customer)">Editar</button>
+          <template v-if="pendingDelete === customer._id"><span>¿Eliminar?</span><button class="admin-text-button danger" :disabled="store.saving" @click="remove">Confirmar</button><button class="admin-text-button" :disabled="store.saving" @click="pendingDelete = ''">Cancelar</button></template>
+          <button v-else class="admin-text-button danger" :disabled="store.saving" @click="pendingDelete = customer._id">Eliminar</button>
+        </div></td>
+      </tr><tr v-if="!store.filteredCustomers.length"><td colspan="5" class="admin-empty">No hay clientes para estos filtros.</td></tr></tbody>
     </table>
   </div>
 </template>

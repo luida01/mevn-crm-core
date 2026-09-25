@@ -27,7 +27,7 @@ const MangaSchema: Schema = new Schema({
     isbn: { type: String },
     price: { type: Number, required: true, min: 0 },
     rentalPrice: { type: Number, required: true, min: 0 },
-    stock: { type: Number, required: true, default: 0, min: 0 },
+    stock: { type: Number, required: true, default: 0, min: 0, validate: Number.isInteger },
     coverImage: { type: String, maxlength: 2048 },
     description: { type: String, maxlength: 10000 },
     publishedYear: { type: Number, min: 1800, max: 2200 },

@@ -1,95 +1,50 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import AdminDialog from './AdminDialog.vue';
 import { useRentalStore } from '../stores/rentalStore';
 import { useCustomerStore } from '../stores/customerStore';
 import { useMangaStore } from '../stores/mangaStore';
-
-const emit = defineEmits(['close']);
-
+import { useBusinessStore } from '../stores/businessStore';
+import { money } from '../services/format';
+const emit = defineEmits<{ close: [] }>();
 const rentalStore = useRentalStore();
 const customerStore = useCustomerStore();
 const mangaStore = useMangaStore();
-
-const form = ref({
-  customerId: '',
-  mangaId: '',
-  dueDate: ''
+const business = useBusinessStore();
+const loading = ref(true);
+const form = ref({ customerId: '', mangaId: '', dueDate: '', isPaid: false });
+rentalStore.error = null;
+const availableMangas = computed(() => mangaStore.mangas.filter(m => m.stock > 0));
+const activeCustomers = computed(() => customerStore.customers.filter(c => c.isActive));
+const selectedManga = computed(() => availableMangas.value.find(m => m._id === form.value.mangaId));
+const days = computed(() => Math.max(1, Math.ceil((new Date(form.value.dueDate).getTime() - Date.now()) / 86400000)) || 1);
+const total = computed(() => (selectedManga.value?.rentalPrice || 0) * days.value);
+const localDateTime = (date: Date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0,16);
+const minDate = localDateTime(new Date(Date.now() + 60000));
+onMounted(async () => {
+  await Promise.all([customerStore.fetchCustomers(), mangaStore.fetchMangas(), business.fetchSettings()]);
+  const due = new Date();
+  due.setDate(due.getDate() + business.settings.defaultRentalDays);
+  form.value.dueDate = localDateTime(due);
+  loading.value = false;
 });
-
-onMounted(() => {
-  customerStore.fetchCustomers();
-  mangaStore.fetchMangas();
-});
-
-// Filter available mangas (stock > 0)
-const availableMangas = computed(() => {
-  return mangaStore.mangas.filter(m => m.stock > 0);
-});
-
-const handleSubmit = async () => {
-  try {
-    await rentalStore.createRental(form.value);
-    emit('close');
-  } catch (error) {
-    // Error handled in store
-  }
+const submit = async () => {
+  if (await rentalStore.createRental({ ...form.value, dueDate: new Date(form.value.dueDate).toISOString() })) emit('close');
 };
 </script>
-
 <template>
-  <div class="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-    <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md">
-      
-      <div class="flex justify-between items-center p-5 border-b">
-        <h3 class="text-xl font-semibold text-gray-900">New Rental</h3>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-500">
-          <span class="text-2xl">&times;</span>
-        </button>
-      </div>
-
-      <div class="p-6">
-        <div v-if="rentalStore.error" class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-          <span class="block sm:inline">{{ rentalStore.error }}</span>
-        </div>
-
-        <form @submit.prevent="handleSubmit">
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Customer</label>
-              <select v-model="form.customerId" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2">
-                <option value="" disabled>Select a customer</option>
-                <option v-for="customer in customerStore.customers" :key="customer._id" :value="customer._id">
-                  {{ customer.firstName }} {{ customer.lastName }}
-                </option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Manga</label>
-              <select v-model="form.mangaId" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2">
-                <option value="" disabled>Select a manga</option>
-                <option v-for="manga in availableMangas" :key="manga._id" :value="manga._id">
-                  {{ manga.title }} (Vol. {{ manga.volume }}) - Stock: {{ manga.stock }}
-                </option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Due Date</label>
-              <input v-model="form.dueDate" type="date" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2">
-            </div>
-
-            <div class="flex justify-end gap-3 mt-6">
-              <button type="button" @click="$emit('close')" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
-                Cancel
-              </button>
-              <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none">
-                Create Rental
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
+  <AdminDialog title="Nuevo alquiler" :busy="!!rentalStore.busy" @close="emit('close')">
+    <p v-if="loading" role="status">Cargando clientes e inventario…</p>
+    <p v-if="rentalStore.error || customerStore.error || mangaStore.error || business.error" class="admin-alert" role="alert">{{ rentalStore.error || customerStore.error || mangaStore.error || business.error }}</p>
+    <form v-if="!loading" class="admin-form" @submit.prevent="submit">
+      <label>Cliente activo<select v-model="form.customerId" required><option value="" disabled>Selecciona un cliente</option><option v-for="customer in activeCustomers" :key="customer._id" :value="customer._id">{{ customer.firstName }} {{ customer.lastName }} · {{ customer.email }}</option></select></label>
+      <p v-if="!activeCustomers.length" class="admin-muted">Crea o activa un cliente en Clientes para continuar.</p>
+      <label>Manga disponible<select v-model="form.mangaId" required><option value="" disabled>Selecciona un volumen</option><option v-for="manga in availableMangas" :key="manga._id" :value="manga._id">{{ manga.title }} · Vol. {{ manga.volume }} · {{ manga.stock }} disponibles</option></select></label>
+      <p v-if="!availableMangas.length" class="admin-muted">No hay stock disponible. Actualiza las unidades desde Mangas.</p>
+      <label>Fecha y hora de devolución<input v-model="form.dueDate" type="datetime-local" :min="minDate" required></label>
+      <div class="admin-note" v-if="selectedManga">{{ days }} día(s) × {{ money(selectedManga.rentalPrice) }} = <strong>{{ money(total) }}</strong><small>Se cobra por día iniciado. El importe final se calcula al registrar el alquiler.</small></div>
+      <label class="admin-checkbox"><input v-model="form.isPaid" type="checkbox"> Pago recibido</label>
+      <footer class="admin-actions"><button type="button" class="admin-button secondary" :disabled="!!rentalStore.busy" @click="emit('close')">Cancelar</button><button class="admin-button" :disabled="!!rentalStore.busy || !availableMangas.length || !activeCustomers.length">{{ rentalStore.busy ? 'Registrando…' : 'Registrar alquiler' }}</button></footer>
+    </form>
+  </AdminDialog>
 </template>

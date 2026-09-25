@@ -1,18 +1,13 @@
+import type { Rental } from './Rental';
 export interface Customer {
     _id: string;
     firstName: string;
     lastName: string;
     email: string;
-    password?: string;
     phone?: string;
     isActive: boolean;
-    address: {
-        street: string;
-        city: string;
-        zip: string;
-    };
-    rentals?: any[];
+    address: { street: string; city: string; zip: string };
+    rentals?: Array<Omit<Rental, 'customer'> & { customer: string }>;
     createdAt: string;
 }
-
-export type CustomerInput = Omit<Customer, '_id' | 'createdAt'>;
+export type CustomerInput = Pick<Customer, 'firstName' | 'lastName' | 'email' | 'phone' | 'isActive' | 'address'>;

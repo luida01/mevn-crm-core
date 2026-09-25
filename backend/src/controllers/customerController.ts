@@ -4,6 +4,7 @@ import Customer, { ICustomer } from '../models/Customer';
 import Rental from '../models/Rental';
 import '../models/Manga'; // Register the populated model
 import { getErrorMessage, pickRequestFields } from '../utils/requestBody';
+import { refreshOverdueRentals } from '../services/rentalStatus';
 
 type CustomerInput = Pick<ICustomer, 'firstName' | 'lastName' | 'email' | 'phone' | 'isActive' | 'address'>;
 const customerFields: readonly (keyof CustomerInput)[] = [
@@ -32,6 +33,7 @@ const handleWriteError = (error: unknown, res: Response, fallback: string): void
 
 export const getCustomers = async (_req: Request, res: Response) => {
     try {
+        await refreshOverdueRentals();
         const customers = await Customer.find()
             .select('-password')
             .sort({ createdAt: -1 })
@@ -50,6 +52,7 @@ export const getCustomer = async (req: Request, res: Response) => {
     }
 
     try {
+        await refreshOverdueRentals();
         const customer = await Customer.findById(req.params.id)
             .select('-password')
             .populate(populateRentals);

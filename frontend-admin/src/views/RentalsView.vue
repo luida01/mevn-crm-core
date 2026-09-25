@@ -1,109 +1,48 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useRentalStore } from '../stores/rentalStore';
 import RentalForm from '../components/RentalForm.vue';
-
+import RentalActions from '../components/RentalActions.vue';
+import { money, dateTime, customerName, rentalStatus, statusLabel } from '../services/format';
 const store = useRentalStore();
+const route = useRoute();
 const showForm = ref(false);
-
-onMounted(() => {
-  store.fetchRentals();
-});
-
-const formatDate = (dateString: string) => {
-  if (!dateString) return '-';
-  return new Date(dateString).toLocaleDateString();
-};
-
-const handleReturn = async (id: string) => {
-  if (confirm('Mark this rental as returned?')) {
-    await store.returnRental(id);
-  }
-};
+const search = ref('');
+const status = ref(String(route.query.status || 'all'));
+const payment = ref('all');
+const customerId = ref(String(route.query.customer || ''));
+watch(() => route.query, query => { customerId.value = String(query.customer || ''); status.value = String(query.status || 'all'); });
+const filtered = computed(() => store.rentals.filter(rental => {
+  if (customerId.value && rental.customer?._id !== customerId.value) return false;
+  if (status.value !== 'all' && rentalStatus(rental) !== status.value) return false;
+  if (payment.value === 'paid' && !rental.isPaid || payment.value === 'unpaid' && rental.isPaid) return false;
+  const text = [customerName(rental), rental.customer?.email, rental.manga?.title, rental.manga?.volume].join(' ').toLowerCase();
+  return text.includes(search.value.trim().toLowerCase());
+}));
+onMounted(() => store.fetchRentals());
 </script>
-
 <template>
-  <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="sm:flex sm:items-center">
-      <div class="sm:flex-auto">
-        <h1 class="text-xl font-semibold text-gray-900">Rentals</h1>
-        <p class="mt-2 text-sm text-gray-700">Manage manga rentals.</p>
-      </div>
-      <div class="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
-        <button @click="showForm = true" type="button" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto">
-          New Rental
-        </button>
-      </div>
+  <div class="admin-page">
+    <header class="admin-page-header"><div><p class="admin-eyebrow">Operaciones</p><h1>Alquileres</h1><p>Controla vencimientos, devoluciones y pagos de cada volumen.</p></div><button class="admin-button" @click="showForm = true">+ Nuevo alquiler</button></header>
+    <div class="admin-toolbar">
+      <label class="admin-search"><span class="sr-only">Buscar alquiler</span><input v-model="search" type="search" placeholder="Cliente, manga o volumen"></label>
+      <label><span class="sr-only">Estado</span><select v-model="status"><option value="all">Todos los estados</option><option value="ACTIVE">En curso</option><option value="LATE">Vencidos</option><option value="RETURNED">Devueltos</option></select></label>
+      <label><span class="sr-only">Pago</span><select v-model="payment"><option value="all">Todos los pagos</option><option value="paid">Pagados</option><option value="unpaid">Por cobrar</option></select></label>
+      <button class="admin-button secondary" :disabled="store.loading || !!store.busy" @click="store.fetchRentals()">Actualizar</button>
     </div>
-
-    <div v-if="showForm">
-      <RentalForm @close="showForm = false" />
-    </div>
-
-    <div class="mt-8 flex flex-col">
-      <div class="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-        <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-          <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-            <table class="min-w-full divide-y divide-gray-300">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Customer</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Manga</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Due Date</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Payment</th>
-                  <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                    <span class="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-200 bg-white">
-                <tr v-for="rental in store.rentals" :key="rental._id">
-                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <div class="font-medium text-gray-900">{{ rental.customer?.firstName }} {{ rental.customer?.lastName }}</div>
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    {{ rental.manga?.title }} (Vol. {{ rental.manga?.volume }})
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    {{ formatDate(rental.dueDate) }}
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <span class="inline-flex rounded-full px-2 text-xs font-semibold leading-5"
-                      :class="{
-                        'bg-green-100 text-green-800': rental.status === 'ACTIVE',
-                        'bg-gray-100 text-gray-800': rental.status === 'RETURNED',
-                        'bg-red-100 text-red-800': rental.status === 'LATE'
-                      }">
-                      {{ rental.status }}
-                    </span>
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <button 
-                      @click="store.togglePayment(rental._id)"
-                      class="inline-flex rounded-full px-2 text-xs font-semibold leading-5 cursor-pointer hover:opacity-80"
-                      :class="rental.isPaid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'"
-                    >
-                      {{ rental.isPaid ? 'Paid' : 'Unpaid' }}
-                    </button>
-                  </td>
-                  <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                    <button v-if="rental.status === 'ACTIVE' || rental.status === 'LATE'" 
-                            @click="handleReturn(rental._id)" 
-                            class="text-indigo-600 hover:text-indigo-900">
-                      Return
-                    </button>
-                    <span v-else class="text-gray-400">Returned</span>
-                  </td>
-                </tr>
-                <tr v-if="store.rentals.length === 0">
-                    <td colspan="5" class="px-3 py-4 text-sm text-gray-500 text-center">No rentals found.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
+    <p v-if="customerId" class="admin-note">Mostrando alquileres del cliente seleccionado. <router-link to="/rentals">Ver todos</router-link></p>
+    <p v-if="store.error" class="admin-alert" role="alert">{{ store.error }}</p>
+    <p v-if="store.loading" class="admin-empty" role="status">Cargando alquileres…</p>
+    <div v-else class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Cliente / Manga</th><th>Devolución prevista</th><th>Estado</th><th>Importe</th><th>Acciones</th></tr></thead>
+      <tbody><tr v-for="rental in filtered" :key="rental._id">
+        <td><strong>{{ customerName(rental) }}</strong><small>{{ rental.manga?.title || 'Manga no disponible' }} · Vol. {{ rental.manga?.volume }}</small></td>
+        <td>{{ dateTime(rental.dueDate) }}<small v-if="rental.returnDate">Devuelto: {{ dateTime(rental.returnDate) }}</small></td>
+        <td><span class="admin-badge" :class="{ 'danger': rentalStatus(rental) === 'LATE', 'good': rental.status === 'RETURNED' }">{{ statusLabel(rentalStatus(rental)) }}</span></td>
+        <td><strong>{{ money(rental.cost) }}</strong><small>{{ rental.isPaid ? 'Pagado' : 'Por cobrar' }}</small></td>
+        <td><RentalActions :rental="rental" /><router-link class="admin-sub-link" :to="{ path: '/invoicing', query: { rental: rental._id } }">Ver cobro y comprobante →</router-link></td>
+      </tr><tr v-if="!filtered.length"><td colspan="5" class="admin-empty">No hay alquileres para estos filtros.</td></tr></tbody>
+    </table></div>
+    <RentalForm v-if="showForm" @close="showForm = false" />
   </div>
 </template>

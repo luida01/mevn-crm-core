@@ -5,6 +5,7 @@
         {{ editManga ? 'Edit Manga' : 'New Manga' }}
       </h2>
       
+      <p v-if="store.error" class="admin-alert" role="alert">{{ store.error }}</p>
       <form @submit.prevent="save" class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
@@ -76,15 +77,15 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Stock</label>
-          <input v-model.number="form.stock" type="number" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+          <input v-model.number="form.stock" type="number" min="0" step="1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Sale Price ($)</label>
-          <input v-model.number="form.price" type="number" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+          <input v-model.number="form.price" type="number" min="0" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rental Price ($)</label>
-          <input v-model.number="form.rentalPrice" type="number" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+          <input v-model.number="form.rentalPrice" type="number" min="0" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
         </div>
         <!-- Description field removed as per user request -->
         <!-- <div class="md:col-span-2">
@@ -102,6 +103,7 @@
           </button>
           <button 
             type="submit"
+            :disabled="store.saving"
             class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             {{ editManga ? 'Update Manga' : 'Create Manga' }}

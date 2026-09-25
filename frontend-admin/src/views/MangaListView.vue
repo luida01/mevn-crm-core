@@ -55,8 +55,7 @@ const cancelDeleteManga = () => {
 
 const confirmDeleteManga = async () => {
   if (pendingDeleteMangaId.value) {
-    await store.deleteManga(pendingDeleteMangaId.value);
-    pendingDeleteMangaId.value = null;
+    if (await store.deleteManga(pendingDeleteMangaId.value)) pendingDeleteMangaId.value = null;
   }
 };
 
@@ -68,6 +67,7 @@ const handleImageError = (e: Event) => {
 
 // --- Edit Prices Modal ---
 const openEditModal = (manga: Manga) => {
+  store.error = null;
   editingMangaPrices.value = manga;
   isEditModalOpen.value = true;
 };
@@ -79,20 +79,17 @@ const closeEditModal = () => {
 
 const handlePriceUpdate = async (prices: { rentalPrice: number, price: number }) => {
   if (editingMangaPrices.value && editingMangaPrices.value._id) {
-    await store.updateManga(editingMangaPrices.value._id, prices);
-    closeEditModal();
+    if (await store.updateManga(editingMangaPrices.value._id, prices)) closeEditModal();
   }
 };
 
 // --- Add Stock ---
 const addStock = async (manga: Manga) => {
-  const quantity = prompt(`Add stock for "${manga.title}":`, '1');
-  if (quantity && !isNaN(parseInt(quantity))) {
-    const newStock = manga.stock + parseInt(quantity);
-    if (manga._id) {
-        await store.updateManga(manga._id, { stock: newStock });
-    }
-  }
+  const quantity = prompt(`Unidades que ingresan de "${manga.title}" (vol. ${manga.volume}):`, '1');
+  if (quantity === null) return;
+  const amount = Number(quantity);
+  if (!Number.isInteger(amount) || amount < 1 || amount > 100000) { store.error = 'Indica una cantidad entera entre 1 y 100000.'; return; }
+  if (manga._id) await store.addStock(manga._id, amount);
 };
 
 // --- Full Edit/Create Form ---
@@ -102,28 +99,26 @@ const closeModal = () => {
 };
 
 const handleSave = async (mangaData: Partial<Manga>) => {
-  console.log('Saving manga data (handleSave):', mangaData);
-  if (editingManga.value?._id) {
-    await store.updateManga(editingManga.value._id, mangaData);
-  } else {
-    await store.createManga(mangaData as Manga);
-  }
-  await store.fetchMangas(); // Force refresh to ensure data is correct
-  closeModal();
+  const saved = editingManga.value?._id
+    ? await store.updateManga(editingManga.value._id, mangaData)
+    : await store.createManga(mangaData as MangaInput);
+  if (saved) closeModal();
 };
 </script>
 
 <template>
-  <div class="container mx-auto px-4 py-6">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6 flex justify-between items-center">
-      <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Manga Inventory</h1>
-      <button @click="showImportModal = true" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded inline-flex items-center">
-        <span class="mr-2">Add Manga</span>
+  <div class="admin-page">
+    <div class="admin-page-header">
+      <div><p class="admin-eyebrow">Inventario</p><h1>Mangas</h1><p>Gestiona los precios y las unidades de cada volumen.</p></div>
+      <div class="admin-actions"><button class="admin-button secondary" @click="editingManga = null; store.error = null; isModalOpen = true">Nuevo manual</button>
+      <button @click="showImportModal = true" class="admin-button">
+        <span class="mr-2">Importar catálogo</span>
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
         </svg>
-      </button>
+      </button></div>
     </div>
+    <p class="admin-note">Los títulos importados empiezan con stock 0. Se muestran en la tienda como «Sin stock» hasta que registres unidades. Configura también sus precios.</p>
 
     <MangaImportModal v-if="showImportModal" @close="showImportModal = false" @select="handleImport" />
     <MangaDetailsModal v-if="showDetailsModal && selectedManga" :manga="selectedManga" @close="showDetailsModal = false" />

@@ -8,6 +8,8 @@ import mangaRoutes from './routes/mangaRoutes';
 import rentalRoutes from './routes/rentalRoutes';
 import shopRoutes from './routes/shopRoutes';
 import authRoutes from './routes/authRoutes';
+import invoiceRoutes from './routes/invoiceRoutes';
+import settingsRoutes from './routes/settingsRoutes';
 
 const app = express();
 const PORT = Number.parseInt(process.env.PORT || '5000', 10);
@@ -52,6 +54,8 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/mangas', mangaRoutes);
 app.use('/api/rentals', rentalRoutes);
 app.use('/api/shop', shopRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/settings', settingsRoutes);
 
 app.use((error: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (res.headersSent) {

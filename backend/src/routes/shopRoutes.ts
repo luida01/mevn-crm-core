@@ -1,5 +1,6 @@
 import express from 'express';
 import {
+    getCatalog,
     getTopRatedMangas,
     getRecentArrivals,
     getThematicCollections,
@@ -10,6 +11,7 @@ import {
 } from '../controllers/shopController';
 
 const router = express.Router();
+router.get('/catalog', getCatalog);
 
 router.get('/top-rated', getTopRatedMangas);
 router.get('/recent', getRecentArrivals);

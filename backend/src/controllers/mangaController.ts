@@ -143,6 +143,18 @@ const mangaFields: readonly (keyof MangaInput)[] = [
 ] as const;
 
 // Get all mangas
+export const addMangaStock = async (req: Request, res: Response) => {
+    const quantity: unknown = req.body?.quantity;
+    if (!mongoose.isValidObjectId(req.params.id) || typeof quantity !== 'number' || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100000) {
+        res.status(400).json({ message: 'Indica una cantidad entera entre 1 y 100000.' }); return;
+    }
+    try {
+        const manga = await Manga.findByIdAndUpdate(req.params.id, { $inc: { stock: quantity } }, { new: true, runValidators: true });
+        if (!manga) { res.status(404).json({ message: 'Manga not found' }); return; }
+        res.json(manga);
+    } catch (error: unknown) { console.error(error); res.status(500).json({ message: 'No se pudo añadir stock.' }); }
+};
+
 export const getMangas = async (req: Request, res: Response) => {
     try {
         const mangas = await Manga.find().sort({ createdAt: -1 });

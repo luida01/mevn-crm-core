@@ -1,96 +1,52 @@
 import { defineStore } from 'pinia';
 import api from '../services/api';
+import { errorMessage } from '../services/errors';
 import type { Customer, CustomerInput } from '../types/Customer';
 
 export const useCustomerStore = defineStore('customer', {
     state: () => ({
-        customers: [] as Customer[],
-        currentCustomer: null as Customer | null,
-        loading: false,
-        error: null as string | null,
-        searchQuery: '',
-        statusFilter: 'all' as 'all' | 'renting' | 'overdue' | 'not-renting',
+        customers: [] as Customer[], loading: false, saving: false, error: null as string | null,
+        searchQuery: '', statusFilter: 'all' as 'all' | 'renting' | 'overdue' | 'not-renting' | 'inactive'
     }),
     getters: {
-        filteredCustomers: (state) => {
-            let result = state.customers;
-
-            // Filter by search query
-            if (state.searchQuery) {
-                const query = state.searchQuery.toLowerCase();
-                result = result.filter(c =>
-                    (c.firstName?.toLowerCase() || '').includes(query) ||
-                    (c.lastName?.toLowerCase() || '').includes(query) ||
-                    (c.email?.toLowerCase() || '').includes(query)
-                );
+        filteredCustomers: state => state.customers.filter(customer => {
+            const query = state.searchQuery.trim().toLocaleLowerCase();
+            if (query && ![customer.firstName, customer.lastName, customer.email, customer.phone].some(value => value?.toLocaleLowerCase().includes(query))) return false;
+            const active = customer.rentals?.some(r => r.status !== 'RETURNED');
+            const late = customer.rentals?.some(r => r.status !== 'RETURNED' && new Date(r.dueDate).getTime() < Date.now());
+            switch (state.statusFilter) {
+                case 'renting': return active;
+                case 'overdue': return late;
+                case 'not-renting': return !active;
+                case 'inactive': return !customer.isActive;
+                default: return true;
             }
-
-            // Filter by rental status
-            if (state.statusFilter !== 'all') {
-                result = result.filter(c => {
-                    const hasActiveRental = c.rentals?.some((r: any) => r.status === 'ACTIVE');
-                    const hasLateRental = c.rentals?.some((r: any) => r.status === 'LATE');
-
-                    switch (state.statusFilter) {
-                        case 'renting':
-                            return hasActiveRental && !hasLateRental;
-                        case 'overdue':
-                            return hasLateRental;
-                        case 'not-renting':
-                            return !hasActiveRental && !hasLateRental;
-                        default:
-                            return true;
-                    }
-                });
-            }
-
-            return result;
-        }
+        })
     },
     actions: {
         async fetchCustomers() {
-            this.loading = true;
-            try {
-                const response = await api.get('/customers');
-                this.customers = response.data;
-            } catch (err: any) {
-                this.error = err.message || 'Error fetching customers';
-            } finally {
-                this.loading = false;
-            }
+            this.loading = true; this.error = null;
+            try { this.customers = (await api.get<Customer[]>('/customers')).data; return true; }
+            catch (error: unknown) { this.error = errorMessage(error); return false; }
+            finally { this.loading = false; }
         },
-        async createCustomer(customer: CustomerInput) {
-            this.loading = true;
+        async saveCustomer(customer: CustomerInput, id?: string) {
+            if (this.saving) return false;
+            this.saving = true; this.error = null;
             try {
-                const response = await api.post('/customers', customer);
-                this.customers.unshift(response.data);
-            } catch (err: any) {
-                this.error = err.message || 'Error creating customer';
-            } finally {
-                this.loading = false;
-            }
-        },
-        async updateCustomer(id: string, updates: Partial<CustomerInput>) {
-            this.loading = true;
-            try {
-                const response = await api.put(`/customers/${id}`, updates);
-                const index = this.customers.findIndex(c => c._id === id);
-                if (index !== -1) {
-                    this.customers[index] = response.data;
-                }
-            } catch (err: any) {
-                this.error = err.message || 'Error updating customer';
-            } finally {
-                this.loading = false;
-            }
+                const saved = id ? (await api.put<Customer>('/customers/' + id, customer)).data : (await api.post<Customer>('/customers', customer)).data;
+                const index = this.customers.findIndex(item => item._id === saved._id);
+                if (index < 0) this.customers.unshift(saved); else this.customers[index] = saved;
+                return true;
+            } catch (error: unknown) { this.error = errorMessage(error); return false; }
+            finally { this.saving = false; }
         },
         async deleteCustomer(id: string) {
-            try {
-                await api.delete(`/customers/${id}`);
-                this.customers = this.customers.filter(c => c._id !== id);
-            } catch (err: any) {
-                this.error = err.message || 'Error deleting customer';
-            }
+            if (this.saving) return false;
+            this.saving = true; this.error = null;
+            try { await api.delete('/customers/' + id); this.customers = this.customers.filter(c => c._id !== id); return true; }
+            catch (error: unknown) { this.error = errorMessage(error); return false; }
+            finally { this.saving = false; }
         }
-    },
+    }
 });
