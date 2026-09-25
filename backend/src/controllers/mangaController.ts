@@ -5,6 +5,110 @@ import Rental from '../models/Rental';
 import axios from 'axios';
 import { pickRequestFields } from '../utils/requestBody';
 
+interface JikanMangaSearchResult {
+    mal_id: number;
+    title: string;
+    title_english?: string | null;
+    authors?: Array<{ name: string }>;
+    genres?: Array<{ name: string }>;
+    synopsis?: string | null;
+    images?: { jpg?: { image_url?: string | null } };
+    published?: { from?: string | null };
+    status?: string | null;
+    score?: number | null;
+}
+
+interface JikanSearchResponse {
+    data: JikanMangaSearchResult[];
+}
+
+interface MangaDexRelationship {
+    id: string;
+    type: string;
+    attributes?: { name?: string; fileName?: string };
+}
+
+interface MangaDexSearchResult {
+    id: string;
+    attributes: {
+        title: Record<string, string>;
+        altTitles?: Array<Record<string, string>>;
+        description?: Record<string, string>;
+        year?: number | null;
+        status?: string;
+        links?: { mal?: string };
+        originalLanguage?: string;
+        tags?: Array<{ attributes?: { group?: string; name?: Record<string, string> } }>;
+    };
+    relationships: MangaDexRelationship[];
+}
+
+interface MangaDexSearchResponse {
+    data: MangaDexSearchResult[];
+}
+
+const normalizeJikanManga = (item: JikanMangaSearchResult) => {
+    let authorName = item.authors?.[0]?.name || 'Unknown';
+    if (authorName.includes(', ')) {
+        const [lastName, firstName] = authorName.split(', ');
+        authorName = `${firstName} ${lastName}`;
+    }
+
+    const publishedDate = item.published?.from ? new Date(item.published.from) : null;
+    return {
+        title: item.title_english || item.title,
+        author: authorName,
+        genre: item.genres?.map((genre) => genre.name).join(', ') || 'Unknown',
+        description: item.synopsis || '',
+        coverImage: item.images?.jpg?.image_url || null,
+        publishedYear: publishedDate && !Number.isNaN(publishedDate.getTime()) ? publishedDate.getFullYear() : null,
+        status: item.status || 'Unknown',
+        malScore: item.score ?? null,
+        malId: String(item.mal_id),
+        provider: 'MyAnimeList',
+        price: 0,
+        rentalPrice: 0,
+        stock: 0
+    };
+};
+
+const normalizeMangaDexManga = (item: MangaDexSearchResult) => {
+    const titles = [item.attributes.title, ...(item.attributes.altTitles || [])];
+    const getLocalizedText = (values: Record<string, string> | undefined): string => {
+        if (!values) return '';
+        return values.en || values['en-us'] || values['ja-ro'] || values.ja || Object.values(values)[0] || '';
+    };
+    const author = item.relationships
+        .filter((relationship) => relationship.type === 'author' || relationship.type === 'artist')
+        .map((relationship) => relationship.attributes?.name)
+        .filter((name): name is string => Boolean(name))
+        .join(', ') || 'Unknown';
+    const coverFile = item.relationships.find((relationship) => relationship.type === 'cover_art')?.attributes?.fileName;
+    const tags = (item.attributes.tags || [])
+        .filter((tag) => tag.attributes?.group === 'genre' || tag.attributes?.group === 'demographic')
+        .map((tag) => getLocalizedText(tag.attributes?.name))
+        .filter(Boolean);
+    const malId = item.attributes.links?.mal;
+
+    return {
+        title: getLocalizedText(item.attributes.title) || getLocalizedText(titles[0]),
+        alternativeTitles: titles.slice(1).map(getLocalizedText).filter(Boolean),
+        author,
+        genre: [...new Set(tags)].join(', ') || 'Unknown',
+        description: getLocalizedText(item.attributes.description) || '',
+        coverImage: coverFile ? `https://uploads.mangadex.org/covers/${item.id}/${coverFile}` : null,
+        publishedYear: item.attributes.year || null,
+        status: item.attributes.status === 'ongoing' ? 'Publishing' : item.attributes.status === 'completed' ? 'Finished' : item.attributes.status || 'Unknown',
+        malScore: null,
+        malId: malId ? String(malId) : null,
+        mangaDexId: item.id,
+        provider: 'MangaDex',
+        price: 0,
+        rentalPrice: 0,
+        stock: 0
+    };
+};
+
 type MangaInput = Pick<IManga,
     'title' | 'volume' | 'author' | 'genre' | 'isbn' | 'price' | 'rentalPrice' | 'stock'
     | 'coverImage' | 'description' | 'publishedYear' | 'status' | 'malScore' | 'malId'
@@ -139,52 +243,83 @@ export const searchMangas = async (req: Request, res: Response) => {
 
 // Search remote mangas via Jikan API
 export const searchRemoteMangas = async (req: Request, res: Response) => {
+    const { q } = req.query;
+    if (typeof q !== 'string' || !q.trim()) {
+        return res.status(400).json({ message: 'Query parameter "q" is required' });
+    }
+    if (q.trim().length > 200) {
+        return res.status(400).json({ message: 'Query parameter "q" must be at most 200 characters' });
+    }
+
+    const query = q.trim();
     try {
-        const { q } = req.query;
-        if (!q) return res.status(400).json({ message: 'Query parameter "q" is required' });
-
-        if (typeof q !== 'string' || q.trim().length > 200) {
-            return res.status(400).json({ message: 'Query parameter "q" must be a string of at most 200 characters' });
-        }
-
-        const response = await axios.get('https://api.jikan.moe/v4/manga', {
-            params: { q: q.trim(), limit: 5 },
+        const response = await axios.get<JikanSearchResponse>('https://api.jikan.moe/v4/manga', {
+            params: { q: query, limit: 5 },
             timeout: 10_000
         });
+        return res.json(response.data.data.map(normalizeJikanManga));
+    } catch (jikanError: unknown) {
+        const status = axios.isAxiosError(jikanError) ? jikanError.response?.status : undefined;
+        console.warn(`Jikan search unavailable${status ? ` (HTTP ${status})` : ''}; trying MangaDex.`);
+    }
 
-        // Transform Jikan data to our format
-        const mangas = response.data.data.map((item: any) => {
-            // Use the longer title (prefer title_english if available, else title)
-            // Also try: title_japanese, title_synonyms
-            const fullTitle = item.title_english || item.title;
-
-            // Convert author from "LastName, FirstName" to "FirstName LastName"
-            let authorName = item.authors[0]?.name || 'Unknown';
-            if (authorName.includes(', ')) {
-                const parts = authorName.split(', ');
-                authorName = `${parts[1]} ${parts[0]}`; // "Ohtaka, Shinobu" -> "Shinobu Ohtaka"
-            }
-
-            return {
-                title: fullTitle,
-                author: authorName,
-                genre: item.genres.map((g: any) => g.name).join(', ') || 'Unknown',
-                description: item.synopsis,
-                coverImage: item.images.jpg.image_url,
-                publishedYear: item.published.from ? new Date(item.published.from).getFullYear() : null,
-                status: item.status || 'Unknown', // Publication status
-                malScore: item.score || null, // MAL score
-                malId: item.mal_id ? String(item.mal_id) : null, // MAL ID
-                price: 0, // Default
-                rentalPrice: 0, // Default
-                stock: 0 // Default
-            };
+    try {
+        const response = await axios.get<MangaDexSearchResponse>('https://api.mangadex.org/manga', {
+            params: {
+                title: query,
+                'includes[]': ['author', 'cover_art'],
+                limit: 30
+            },
+            paramsSerializer: (params) => {
+                const parts: string[] = [];
+                for (const [key, value] of Object.entries(params)) {
+                    if (Array.isArray(value)) {
+                        value.forEach((item) => parts.push(`${key}=${encodeURIComponent(String(item))}`));
+                    } else if (value !== undefined && value !== null) {
+                        parts.push(`${key}=${encodeURIComponent(String(value))}`);
+                    }
+                }
+                return parts.join('&');
+            },
+            timeout: 10_000,
+            headers: { 'User-Agent': 'MEVN-CRM/1.0' }
         });
 
-        res.json(mangas);
-    } catch (error: any) {
-        console.error('Jikan API Error:', error.message);
-        res.status(500).json({ message: 'Error fetching data from Jikan API' });
+        const normalizeTitle = (title: string): string => title
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, ' ')
+            .trim();
+        const normalizedQuery = normalizeTitle(query);
+        const queryWords = normalizedQuery.split(/\s+/).filter(Boolean);
+        const rankedResults = response.data.data
+            .filter((item) => !item.attributes.tags?.some((tag) =>
+                tag.attributes?.group === 'format'
+                && Object.values(tag.attributes.name || {}).some((name) => name.toLowerCase() === 'doujinshi')
+            ))
+            .map((item, index) => {
+                const titles = [item.attributes.title, ...(item.attributes.altTitles || [])]
+                    .flatMap((title) => Object.values(title))
+                    .map(normalizeTitle);
+                const score = titles.reduce((best, title) => {
+                    if (title === normalizedQuery) return Math.max(best, 1000);
+                    if (title.startsWith(normalizedQuery)) return Math.max(best, 700);
+                    const matchingWords = queryWords.filter((word) => title.includes(word)).length;
+                    return Math.max(best, matchingWords * 20);
+                }, 0);
+                return { item, index, score };
+            })
+            .filter((result) => result.score > 0)
+            .sort((left, right) => right.score - left.score || left.index - right.index)
+            .slice(0, 10)
+            .map(({ item }) => normalizeMangaDexManga(item));
+
+        return res.json(rankedResults);
+    } catch (mangaDexError: unknown) {
+        const status = axios.isAxiosError(mangaDexError) ? mangaDexError.response?.status : undefined;
+        console.error(`MangaDex fallback search failed${status ? ` (HTTP ${status})` : ''}.`);
+        return res.status(503).json({ message: 'Manga search providers are temporarily unavailable. Please try again shortly.' });
     }
 };
 

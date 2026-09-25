@@ -61,7 +61,9 @@ const confirmDeleteManga = async () => {
 };
 
 const handleImageError = (e: Event) => {
-  (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x450?text=No+Cover';
+  const image = e.currentTarget as HTMLImageElement;
+  image.onerror = null;
+  image.src = '/no-cover.svg';
 };
 
 // --- Edit Prices Modal ---

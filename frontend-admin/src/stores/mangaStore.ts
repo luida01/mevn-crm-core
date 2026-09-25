@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import api from '../services/api';
-import type { Manga, MangaInput } from '../types/Manga';
+import axios from 'axios';
+import type { Manga, MangaInput, RemoteMangaResult } from '../types/Manga';
 
 export const useMangaStore = defineStore('manga', {
     state: () => ({
@@ -122,11 +123,16 @@ export const useMangaStore = defineStore('manga', {
         },
         async searchRemoteMangas(query: string) {
             this.loading = true;
+            this.error = null;
             try {
-                const response = await api.get(`/mangas/search-remote?q=${query}`);
+                const response = await api.get<RemoteMangaResult[]>('/mangas/search-remote', { params: { q: query } });
                 return response.data;
-            } catch (err: any) {
-                this.error = err.message || 'Error searching remote mangas';
+            } catch (err: unknown) {
+                if (axios.isAxiosError<{ message?: string }>(err)) {
+                    this.error = err.response?.data?.message || err.message || 'Error searching manga catalogs';
+                } else {
+                    this.error = err instanceof Error ? err.message : 'Error searching manga catalogs';
+                }
                 return [];
             } finally {
                 this.loading = false;
