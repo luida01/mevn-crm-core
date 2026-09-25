@@ -4,12 +4,24 @@ import FaqView from '../views/FaqView.vue';
 import RentalPoliciesView from '../views/RentalPoliciesView.vue';
 import ReturnPolicyView from '../views/ReturnPolicyView.vue';
 import TermsView from '../views/TermsView.vue';
+import CatalogView from '../views/CatalogView.vue';
+import CartView from '../views/CartView.vue';
 
 const routes = [
     {
         path: '/',
         name: 'shop',
         component: ShopView
+    },
+    {
+        path: '/catalogo',
+        name: 'catalog',
+        component: CatalogView
+    },
+    {
+        path: '/carrito',
+        name: 'cart',
+        component: CartView
     },
     {
         path: '/faq',

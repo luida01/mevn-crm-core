@@ -17,10 +17,10 @@
         <h1 id="shop-hero-title" class="shop-hero__title">Historias que te llevan <span>a otros mundos.</span></h1>
         <p class="shop-hero__description">Descubre tu próxima serie favorita. Explora títulos y consulta los precios y la disponibilidad de cada volumen.</p>
         <div class="shop-hero__actions">
-          <a class="gooey-link" href="#catalogo">
+          <router-link class="gooey-link" to="/catalogo">
             <span class="gooey-link__liquid" aria-hidden="true"><span class="gooey-link__bubble gooey-link__bubble--one"></span><span class="gooey-link__bubble gooey-link__bubble--two"></span></span>
             <span class="gooey-link__label">Explorar mangas <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
-          </a>
+          </router-link>
           <a class="shop-hero__secondary" href="#como-funciona">¿Cómo funciona? <span aria-hidden="true">↓</span></a>
         </div>
         <div class="shop-hero__proof" aria-label="Ventajas de MangaGo">
@@ -50,8 +50,6 @@
     </section>
 
     <div class="container mx-auto px-4 py-12 storefront-content">
-      <CatalogBrowser @select-manga="openMangaDetails" />
-
       <!-- Top Rated Carousel -->
       <section id="tendencias" class="mb-16 home-section">
         <div class="home-section__heading">
@@ -210,8 +208,8 @@
       </section>
     </div>
 
-    <ShopMangaDialog v-if="selectedManga" :manga="selectedManga" @close="selectedManga = null" @checkout="handleCheckout" />
-    <DemoCheckoutDialog v-if="checkoutRequest" :manga="checkoutRequest.manga" :kind="checkoutRequest.kind" @close="checkoutRequest = null" />
+    <ShopMangaDialog v-if="selectedManga" :manga="selectedManga" @close="selectedManga = null" @add-to-cart="handleAddToCart" />
+    <p v-if="cartMessage" class="cart-toast" role="status" aria-live="polite">{{ cartMessage }} <router-link to="/carrito">Ver carrito</router-link></p>
 
     <!-- Footer -->
     <ShopFooter />
@@ -228,13 +226,14 @@ import ThematicCollection from '../components/ThematicCollection.vue';
 import ShopFooter from '../components/ShopFooter.vue';
 import ShopHeader from '../components/ShopHeader.vue';
 import ShopMangaDialog from '../components/ShopMangaDialog.vue';
-import DemoCheckoutDialog from '../components/DemoCheckoutDialog.vue';
-import CatalogBrowser from '../components/CatalogBrowser.vue';
 import api from '../services/api';
+import { useCartStore, type CartKind } from '../stores/cartStore';
 
 const store = useShopStore();
 const selectedManga = ref<Manga | null>(null);
-const checkoutRequest = ref<{ manga: Manga; kind: 'rental' | 'purchase' } | null>(null);
+const cart = useCartStore();
+const cartMessage = ref('');
+let cartMessageTimer: ReturnType<typeof setTimeout> | undefined;
 const topAuthors = ref<Array<{ _id: string; count: number; avgScore?: number }>>([]);
 const mostReadWeek = ref<Manga[]>([]);
 const mostRentedToday = ref<Manga[]>([]);
@@ -244,10 +243,13 @@ const openMangaDetails = (manga: Manga) => {
   selectedManga.value = manga;
 };
 
-const handleCheckout = (kind: 'rental' | 'purchase') => {
+const handleAddToCart = (kind: CartKind) => {
   if (!selectedManga.value) return;
-  checkoutRequest.value = { manga: selectedManga.value, kind };
-  selectedManga.value = null;
+  const error = cart.add(selectedManga.value, kind);
+  cartMessage.value = error || `${selectedManga.value.title} · Vol. ${selectedManga.value.volume} agregado al carrito.`;
+  if (cartMessageTimer) clearTimeout(cartMessageTimer);
+  cartMessageTimer = setTimeout(() => { cartMessage.value = ''; }, 5000);
+  if (!error) selectedManga.value = null;
 };
 
 const handleCoverError = (event: Event) => {

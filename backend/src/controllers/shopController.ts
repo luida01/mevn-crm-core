@@ -5,12 +5,22 @@ import { escapeRegex, parseLimit } from '../utils/requestBody';
 export const getCatalog = async (req: Request, res: Response) => {
     const search = typeof req.query.q === 'string' ? req.query.q.trim() : '';
     if (search.length > 100) return res.status(400).json({ message: 'Search must be at most 100 characters' });
+    const title = typeof req.query.title === 'string' ? req.query.title.trim() : '';
+    const author = typeof req.query.author === 'string' ? req.query.author.trim() : '';
+    const volume = Number.parseInt(String(req.query.volume || ''), 10);
+    const mode = req.query.mode === 'purchase' || req.query.mode === 'rental' ? req.query.mode : '';
     const page = Math.max(1, Math.min(100000, Number.parseInt(String(req.query.page || '1'), 10) || 1));
     const limit = parseLimit(req.query.limit, 12, 48);
     const query: Record<string, unknown> = {};
     if (search) query.$or = ['title', 'author', 'genre'].map(field => ({ [field]: { $regex: escapeRegex(search), $options: 'i' } }));
+    if (title.length > 200 || author.length > 200) return res.status(400).json({ message: 'Title and author filters must be at most 200 characters' });
+    if (title) query.title = title;
+    if (author) query.author = { $regex: `^${escapeRegex(author)}$`, $options: 'i' };
+    if (Number.isInteger(volume) && volume > 0) query.volume = volume;
     if (req.query.availability === 'available') query.stock = { $gt: 0 };
     if (req.query.availability === 'unavailable') query.stock = 0;
+    if (mode === 'purchase') query.price = { $gt: 0 };
+    if (mode === 'rental') query.rentalPrice = { $gt: 0 };
     try {
         const [items, total] = await Promise.all([
             Manga.find(query).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit),
@@ -20,6 +30,26 @@ export const getCatalog = async (req: Request, res: Response) => {
     } catch (error: unknown) {
         console.error('Error loading catalog:', error);
         res.status(500).json({ message: 'Could not load catalog' });
+    }
+};
+
+export const getCatalogFilters = async (req: Request, res: Response) => {
+    const title = typeof req.query.title === 'string' ? req.query.title.trim() : '';
+    if (title.length > 200) return res.status(400).json({ message: 'Title must be at most 200 characters' });
+    try {
+        const [titles, authors, volumes] = await Promise.all([
+            Manga.distinct('title'),
+            Manga.distinct('author'),
+            title ? Manga.distinct('volume', { title }) : Promise.resolve([] as number[])
+        ]);
+        res.set('Cache-Control', 'no-store').json({
+            titles: titles.filter((value): value is string => typeof value === 'string').sort((a, b) => a.localeCompare(b)),
+            authors: authors.filter((value): value is string => typeof value === 'string').sort((a, b) => a.localeCompare(b)),
+            volumes: volumes.filter((value): value is number => typeof value === 'number').sort((a, b) => a - b)
+        });
+    } catch (error: unknown) {
+        console.error('Error loading catalog filters:', error);
+        res.status(500).json({ message: 'Could not load catalog filters' });
     }
 };
 

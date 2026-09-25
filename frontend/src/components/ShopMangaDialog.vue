@@ -27,10 +27,10 @@
             <span aria-hidden="true">{{ manga.stock > 0 ? '●' : '○' }}</span>
             {{ manga.stock > 0 ? `${manga.stock} ${manga.stock === 1 ? 'unidad disponible' : 'unidades disponibles'}` : 'Sin unidades disponibles' }}
           </p>
-          <p class="shop-manga-dialog__note">Las acciones de abajo solo muestran el recorrido de prueba. No reservan el título ni realizan un cobro.</p>
+          <p class="shop-manga-dialog__note">Puedes combinar compras y alquileres en el mismo carrito. Añadir un volumen no lo reserva y el pago todavía es una simulación.</p>
           <div class="shop-manga-dialog__actions">
-            <button type="button" class="shop-manga-dialog__rent" :disabled="manga.stock < 1" @click="emit('checkout', 'rental')">Simular alquiler</button>
-            <button type="button" class="shop-manga-dialog__buy" :disabled="manga.stock < 1" @click="emit('checkout', 'purchase')">Simular compra</button>
+            <button type="button" class="shop-manga-dialog__rent" :disabled="manga.stock < 1 || manga.rentalPrice <= 0" @click="emit('addToCart', 'rental')">Añadir alquiler</button>
+            <button type="button" class="shop-manga-dialog__buy" :disabled="manga.stock < 1 || manga.price <= 0" @click="emit('addToCart', 'purchase')">Añadir compra</button>
           </div>
           <button class="shop-manga-dialog__return" type="button" @click="close">Volver al catálogo <span aria-hidden="true">↗</span></button>
         </div>
@@ -44,7 +44,7 @@ import { onMounted, ref } from 'vue';
 import type { Manga } from '../types/Manga';
 
 const props = defineProps<{ manga: Manga }>();
-const emit = defineEmits<{ close: []; checkout: [kind: 'rental' | 'purchase'] }>();
+const emit = defineEmits<{ close: []; addToCart: [kind: 'rental' | 'purchase'] }>();
 const dialogElement = ref<HTMLDialogElement | null>(null);
 const titleId = `shop-manga-title-${props.manga._id ?? 'preview'}`;
 
