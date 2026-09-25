@@ -1,38 +1,24 @@
 # Próximos pasos de MangaGo
 
-## Estado actual
+## Completado el 25 de septiembre de 2026
 
-- La portada tiene una identidad visual nueva, una navegación compartida y el CTA con el efecto líquido SVG/CSS.
-- La FAQ ya está en español, incluye búsqueda y preguntas desplegables, y enlaza con las políticas.
-- Carrusel, colecciones, bloque de alquileres y footer comparten la nueva paleta.
-- `npm run build` terminó correctamente y los servicios de Docker quedaron levantados.
+- Unifiqué las páginas de políticas de alquiler, devoluciones y términos con la navegación y el estilo de la tienda.
+- Reescribí la FAQ y el contenido informativo para describir lo que la app hace hoy, retirando datos de contacto y promesas comerciales sin confirmar.
+- Añadí fichas de manga desde novedades, colecciones y tendencias, con precio, stock y datos del título.
+- Añadí una experiencia de alquiler/compra de demostración. No pide datos bancarios, no llama a un proveedor, no crea pedidos y no cobra.
+- Mejoré los estados para portadas ausentes y los mensajes que explican el alcance real del catálogo.
+- Docker está levantado: tienda en `http://localhost:5173`, panel en `http://localhost:5174` y API en `http://localhost:5000`.
 
-## Plan recomendado para la próxima sesión
+## Siguientes pasos
 
-### 1. Unificar las páginas de información
+1. Revisar la tienda en escritorio, tablet y móvil; afinar contraste, foco por teclado y movimiento reducido.
+2. Decidir con el negocio condiciones reales de alquiler, devoluciones, entregas, medios de pago, identidad legal y privacidad.
+3. Cuando esas condiciones estén definidas, convertir la demostración en un flujo real de pedido y seleccionar un proveedor de pagos; mantener el modo de prueba sin datos financieros.
+4. Revisar seguridad de la API antes de publicar: autenticación/autorización, CORS limitado, validación de entradas y control de operaciones de inventario.
+5. Ejecutar una revisión final del panel administrativo y del recorrido completo una vez que estén definidos los flujos comerciales.
 
-- Aplicar el encabezado compartido y el estilo de la tienda a Políticas de alquiler, Devoluciones y Términos.
-- Traducir su contenido al español y revisar los enlaces de navegación.
-- Sustituir o retirar datos de contacto de ejemplo y revisar las promesas de pagos, entregas, depósitos y cargos antes de publicarlas.
+## Comprobación local
 
-### 2. Terminar los detalles de la experiencia de la tienda
-
-- Revisar la portada y la FAQ en móvil, tablet y escritorio.
-- Comprobar navegación por teclado, foco visible, contraste y movimiento reducido.
-- Afinar el efecto gooey en el CTA principal y decidir si algún otro control realmente se beneficia de él.
-- Revisar estados de carga, catálogo vacío y portadas sin imagen.
-
-### 3. Revisar el recorrido del catálogo
-
-- Confirmar que cada manga tiene una acción clara y que las opciones de alquiler y compra coinciden con lo que el backend permite.
-- Revisar los enlaces entre novedades, tendencias, colecciones y ayuda para que ninguno lleve a una sección inexistente.
-
-### 4. Cierre de calidad y ejecución
-
-- Volver a compilar el frontend con `npm run build` desde `frontend`.
-- Confirmar que los servicios siguen activos con `docker compose ps` y abrir la tienda y el panel.
-- Corregir cualquier diferencia visual o error visible antes de dar por terminado el rediseño.
-
-## Orden sugerido
-
-Primero validar el contenido de políticas y contacto; luego unificar esas páginas; después hacer la revisión responsive y de accesibilidad; por último cerrar el recorrido del catálogo y verificar la ejecución.
+- Compilar la tienda desde `frontend` con `npm run build`.
+- Confirmar los servicios con `docker compose ps`.
+- Tienda: `http://localhost:5173`; panel: `http://localhost:5174`.

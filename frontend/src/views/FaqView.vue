@@ -8,7 +8,7 @@
           <p class="faq-eyebrow"><span aria-hidden="true">✳</span> Centro de ayuda</p>
           <h1 id="faq-title">Respuestas para<br><em>seguir leyendo.</em></h1>
           <p class="faq-hero__intro">
-            Encuentra en un momento la información sobre alquileres, entregas y devoluciones.
+            Entiende qué ofrece el catálogo y cómo funcionan las simulaciones de alquiler, compra y pago.
           </p>
           <a class="faq-hero__link" href="#preguntas">Ver preguntas frecuentes <span aria-hidden="true">↓</span></a>
         </div>
@@ -17,7 +17,7 @@
           <div class="faq-shortcuts__mark" aria-hidden="true">?</div>
           <p class="faq-shortcuts__eyebrow">Información útil</p>
           <h2>¿Buscas todos los detalles?</h2>
-          <p>Consulta las condiciones completas antes de alquilar o comprar.</p>
+          <p>Revisa lo que puede hacer el sistema en esta versión.</p>
           <router-link to="/rental-policies">Políticas de alquiler <span aria-hidden="true">↗</span></router-link>
           <router-link to="/return-policy">Devoluciones y reembolsos <span aria-hidden="true">↗</span></router-link>
           <router-link to="/terms">Términos y condiciones <span aria-hidden="true">↗</span></router-link>
@@ -101,40 +101,40 @@ const openFaqId = ref<string | null>(null);
 
 const faqs = [
   {
-    id: 'periodos',
-    question: '¿Qué periodos de alquiler están disponibles?',
-    answer: 'Las opciones indicadas son de 3, 7 o 14 días. El precio depende del título y de la duración elegida; las condiciones y posibles descuentos se detallan en las políticas de alquiler.',
-    links: [{ label: 'Ver políticas de alquiler', to: '/rental-policies' }]
+    id: 'comprar-alquilar',
+    question: '¿Puedo comprar o alquilar desde la tienda?',
+    answer: 'Aún no se pueden completar pedidos reales. Desde la ficha puedes abrir una simulación de compra o alquiler, pero no reserva ejemplares ni cambia el inventario.',
+    links: [{ label: 'Estado de los alquileres', to: '/rental-policies' }]
   },
   {
-    id: 'costos',
-    question: '¿Hay cargos adicionales al alquilar?',
-    answer: 'Las políticas publicadas indican un depósito reembolsable y un cargo por devolución tardía de $2.00 por día. Revisa el importe y las condiciones aplicables antes de confirmar tu alquiler.',
-    links: [{ label: 'Consultar precios y cargos', to: '/rental-policies' }]
+    id: 'precios',
+    question: '¿Qué significa el precio de alquiler?',
+    answer: 'El catálogo muestra la tarifa diaria configurada para cada volumen. El panel interno calcula el costo de un alquiler según los días registrados; desde esta tienda todavía no se puede iniciar ese proceso.',
+    links: [{ label: 'Cómo funciona el alquiler', to: '/rental-policies' }]
   },
   {
-    id: 'extension',
-    question: '¿Puedo extender un alquiler?',
-    answer: 'La extensión debe solicitarse antes de la fecha de devolución y depende de que el manga no esté reservado por otra persona. Las políticas describen también los límites y el costo de la extensión.',
-    links: [{ label: 'Ver condiciones de extensión', to: '/rental-policies' }]
+    id: 'stock',
+    question: '¿Cómo consulto si hay ejemplares disponibles?',
+    answer: 'Abre la ficha de un manga desde una tarjeta del catálogo para ver el stock que figura actualmente en el sistema. Esa cantidad es informativa y no reserva un ejemplar.',
+    links: []
   },
   {
-    id: 'estado',
-    question: '¿En qué estado debo devolver el manga?',
-    answer: 'Devuélvelo en las condiciones en que lo recibiste. El desgaste normal de lectura se distingue de daños como páginas rotas, manchas o humedad, que pueden generar cargos según las políticas.',
-    links: [{ label: 'Leer política de devoluciones', to: '/return-policy' }]
+    id: 'devoluciones',
+    question: '¿Cómo se registra una devolución?',
+    answer: 'Actualmente el equipo marca la devolución desde el panel administrativo. El sitio público no programa recogidas ni ofrece un historial personal de alquileres.',
+    links: [{ label: 'Estado de las devoluciones', to: '/return-policy' }]
   },
   {
-    id: 'entrega',
-    question: '¿Cómo funcionan la entrega y la recogida?',
-    answer: 'La información publicada contempla entrega en la ciudad capital, envío gratuito según el importe del pedido y opciones de recogida. La cobertura, disponibilidad y costos pueden variar por zona; revisa las condiciones completas antes de pedir.',
-    links: [{ label: 'Ver información de alquiler y entrega', to: '/rental-policies' }]
+    id: 'condiciones',
+    question: '¿Cuáles son los plazos y cargos de alquiler?',
+    answer: 'Los períodos fijos, depósitos, recargos por retraso, descuentos y condiciones de entrega todavía no están confirmados en esta versión. No se anuncian como condiciones del servicio hasta que el negocio los defina.',
+    links: [{ label: 'Ver información del sistema', to: '/rental-policies' }]
   },
   {
-    id: 'pago',
-    question: '¿Qué medios de pago se aceptan?',
-    answer: 'Los términos de la tienda enumeran tarjetas Visa, Mastercard y American Express, transferencias bancarias y pago contra entrega en zonas seleccionadas. Confirma las opciones disponibles para tu pedido al momento de pagar.',
-    links: [{ label: 'Consultar términos y condiciones', to: '/terms' }]
+    id: 'pagos',
+    question: '¿Qué medios de pago puedo usar?',
+    answer: 'La ficha incluye una pasarela visual de demostración con la que puedes simular el resultado. No hay un proveedor conectado ni se realiza ningún cobro.',
+    links: [{ label: 'Leer términos del proyecto', to: '/terms' }]
   },
   {
     id: 'politicas',
@@ -149,9 +149,10 @@ const faqs = [
 ];
 
 const filteredFaqs = computed(() => {
-  const query = searchQuery.value.trim().toLocaleLowerCase();
+  const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
+  const query = normalize(searchQuery.value.trim());
   if (!query) return faqs;
-  return faqs.filter((faq) => `${faq.question} ${faq.answer}`.toLocaleLowerCase().includes(query));
+  return faqs.filter((faq) => normalize(`${faq.question} ${faq.answer}`).includes(query));
 });
 
 const toggleFaq = (id: string) => {

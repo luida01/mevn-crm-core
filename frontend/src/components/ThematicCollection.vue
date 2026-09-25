@@ -10,12 +10,14 @@
     
     <div v-else class="relative">
       <!-- Scrollable Container -->
-      <div class="thematic-collection__scroller">
+      <div class="thematic-collection__scroller" tabindex="0" :aria-label="`Desplazarse por la colección ${title}`">
         <div class="thematic-collection__rail">
-          <div 
+          <button
             v-for="manga in mangas" 
             :key="manga._id"
             class="thematic-card"
+            type="button"
+            @click="emit('selectManga', manga)"
           >
             <div class="thematic-card__cover">
               <img 
@@ -31,7 +33,7 @@
               <p>{{ manga.author }}</p>
               <div><span>${{ manga.rentalPrice }} / día</span><span>${{ manga.price }}</span></div>
             </div>
-          </div>
+          </button>
         </div>
       </div>
     </div>
@@ -46,6 +48,8 @@ const handleCoverError = (event: Event) => {
   image.onerror = null;
   image.src = '/no-cover.svg';
 };
+
+const emit = defineEmits<{ selectManga: [manga: Manga] }>();
 
 defineProps<{
   title: string;
@@ -89,12 +93,18 @@ defineProps<{
 }
 
 .thematic-card {
+  display: block;
   width: 190px;
   flex: 0 0 auto;
   overflow: hidden;
   border: 1px solid var(--shop-line);
   border-radius: 15px;
   background: var(--shop-surface);
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
   box-shadow: 0 6px 15px rgba(49, 39, 27, 0.05);
   transition: transform 180ms ease, box-shadow 180ms ease;
 }

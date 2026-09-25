@@ -15,7 +15,7 @@
       <div class="shop-hero__copy">
         <p class="shop-hero__eyebrow">Tu próxima lectura empieza aquí</p>
         <h1 id="shop-hero-title" class="shop-hero__title">Historias que te llevan <span>a otros mundos.</span></h1>
-        <p class="shop-hero__description">Descubre tu próxima serie favorita. Alquila para probarla, cómprala para tu colección y lee a tu propio ritmo.</p>
+        <p class="shop-hero__description">Descubre tu próxima serie favorita. Explora títulos y consulta los precios y la disponibilidad de cada volumen.</p>
         <div class="shop-hero__actions">
           <a class="gooey-link" href="#novedades">
             <span class="gooey-link__liquid" aria-hidden="true"><span class="gooey-link__bubble gooey-link__bubble--one"></span><span class="gooey-link__bubble gooey-link__bubble--two"></span></span>
@@ -24,8 +24,8 @@
           <a class="shop-hero__secondary" href="#como-funciona">¿Cómo funciona? <span aria-hidden="true">↓</span></a>
         </div>
         <div class="shop-hero__proof" aria-label="Ventajas de MangaGo">
-          <span><b aria-hidden="true">✓</b> Lee antes de coleccionar</span>
-          <span><b aria-hidden="true">✓</b> Sin compromisos largos</span>
+          <span><b aria-hidden="true">✓</b> Información por volumen</span>
+          <span><b aria-hidden="true">✓</b> Disponibilidad visible</span>
         </div>
       </div>
       <div class="shop-hero__art" aria-label="Manga destacado">
@@ -43,6 +43,7 @@
             <h2>{{ featuredManga.title }}</h2>
             <span>{{ featuredManga.author }}</span>
           </div>
+          <button class="hero-poster__interactive" type="button" :aria-label="`Ver detalles de ${featuredManga.title}`" @click="openMangaDetails(featuredManga)"></button>
         </article>
         <div v-else class="hero-poster hero-poster--empty">Una nueva historia<br>te está esperando</div>
       </div>
@@ -56,7 +57,7 @@
           <div><p class="section-eyebrow">Favoritos de la comunidad</p><h2>En boca de todos</h2></div>
           <p>Las historias que están conquistando a quienes leen con nosotros.</p>
         </div>
-        <MangaCarousel v-if="store.topRated.length > 0" :mangas="store.topRated" />
+        <MangaCarousel v-if="store.topRated.length > 0" :mangas="store.topRated" @select-manga="openMangaDetails" />
         <div v-else-if="store.loading" class="section-loading" role="status">Buscando las historias favoritas…</div>
         <div v-else class="section-empty">Pronto encontrarás recomendaciones aquí.</div>
       </section>
@@ -69,10 +70,12 @@
         </div>
         <div v-if="store.loading" class="section-loading" role="status">Cargando novedades…</div>
         <div v-else-if="store.recentArrivals.length > 0" class="arrival-grid">
-          <div 
+          <button
             v-for="manga in store.recentArrivals" 
             :key="manga._id"
             class="arrival-card"
+            type="button"
+            @click="openMangaDetails(manga)"
           >
             <div class="arrival-card__cover">
               <img 
@@ -87,11 +90,11 @@
               <h3>{{ manga.title }}</h3>
               <p class="arrival-card__author">{{ manga.author }}</p>
               <div class="arrival-card__prices">
-                <span>${{ manga.rentalPrice }} / día</span>
-                <span>Comprar · ${{ manga.price }}</span>
+                <span>Alquiler · ${{ manga.rentalPrice }} / día</span>
+                <span>Compra · ${{ manga.price }}</span>
               </div>
             </div>
-          </div>
+          </button>
         </div>
         <div v-else class="section-empty">Estamos preparando más novedades para ti.</div>
       </section>
@@ -112,18 +115,21 @@
           title="Empieza por aquí"
           :mangas="store.collections.beginner"
           :loading="store.loading"
+          @select-manga="openMangaDetails"
         />
         
         <ThematicCollection 
           title="Del anime a las páginas"
           :mangas="store.collections.animeAdaptations"
           :loading="store.loading"
+          @select-manga="openMangaDetails"
         />
         
         <ThematicCollection 
           title="Misterio para leer de noche"
           :mangas="store.collections.horror"
           :loading="store.loading"
+          @select-manga="openMangaDetails"
         />
       </section>
 
@@ -157,10 +163,12 @@
           <div class="community-card">
             <h3>📖 Más leídos esta semana</h3>
             <div v-if="mostReadWeek.length > 0" class="community-list">
-              <div 
+              <button
                 v-for="(manga, index) in mostReadWeek" 
                 :key="manga._id"
                 class="community-list__item"
+                type="button"
+                @click="openMangaDetails(manga)"
               >
                 <span class="community-list__rank">{{ String(index + 1).padStart(2, '0') }}</span>
                 <img :src="manga.coverImage || '/no-cover.svg'" :alt="manga.title" class="community-list__cover" loading="lazy" @error="handleCoverError">
@@ -169,7 +177,7 @@
                   <span>{{ manga.author }}</span>
                 </div>
                 <span v-if="manga.malScore" class="community-list__value">★ {{ manga.malScore.toFixed(1) }}</span>
-              </div>
+              </button>
             </div>
             <p v-else class="community-empty">Aún no hay lecturas para mostrar.</p>
           </div>
@@ -178,10 +186,12 @@
           <div class="community-card">
             <h3>🔥 Más alquilados hoy</h3>
             <div v-if="mostRentedToday.length > 0" class="community-list">
-              <div 
+              <button
                 v-for="(manga, index) in mostRentedToday" 
                 :key="manga._id"
                 class="community-list__item"
+                type="button"
+                @click="openMangaDetails(manga)"
               >
                 <span class="community-list__rank">{{ String(index + 1).padStart(2, '0') }}</span>
                 <img :src="manga.coverImage || '/no-cover.svg'" :alt="manga.title" class="community-list__cover" loading="lazy" @error="handleCoverError">
@@ -190,13 +200,16 @@
                   <span>{{ manga.author }}</span>
                 </div>
                 <span class="community-list__value">${{ manga.rentalPrice }}/día</span>
-              </div>
+              </button>
             </div>
             <p v-else class="community-empty">Los alquileres de hoy aparecerán aquí.</p>
           </div>
         </div>
       </section>
     </div>
+
+    <ShopMangaDialog v-if="selectedManga" :manga="selectedManga" @close="selectedManga = null" @checkout="handleCheckout" />
+    <DemoCheckoutDialog v-if="checkoutRequest" :manga="checkoutRequest.manga" :kind="checkoutRequest.kind" @close="checkoutRequest = null" />
 
     <!-- Footer -->
     <ShopFooter />
@@ -212,13 +225,27 @@ import RentalInfoSection from '../components/RentalInfoSection.vue';
 import ThematicCollection from '../components/ThematicCollection.vue';
 import ShopFooter from '../components/ShopFooter.vue';
 import ShopHeader from '../components/ShopHeader.vue';
+import ShopMangaDialog from '../components/ShopMangaDialog.vue';
+import DemoCheckoutDialog from '../components/DemoCheckoutDialog.vue';
 import api from '../services/api';
 
 const store = useShopStore();
+const selectedManga = ref<Manga | null>(null);
+const checkoutRequest = ref<{ manga: Manga; kind: 'rental' | 'purchase' } | null>(null);
 const topAuthors = ref<Array<{ _id: string; count: number; avgScore?: number }>>([]);
 const mostReadWeek = ref<Manga[]>([]);
 const mostRentedToday = ref<Manga[]>([]);
 const featuredManga = computed(() => store.topRated[0] || store.recentArrivals[0] || null);
+
+const openMangaDetails = (manga: Manga) => {
+  selectedManga.value = manga;
+};
+
+const handleCheckout = (kind: 'rental' | 'purchase') => {
+  if (!selectedManga.value) return;
+  checkoutRequest.value = { manga: selectedManga.value, kind };
+  selectedManga.value = null;
+};
 
 const handleCoverError = (event: Event) => {
   const image = event.currentTarget as HTMLImageElement;

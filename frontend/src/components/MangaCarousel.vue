@@ -43,6 +43,7 @@
                   <span>Para tu colección</span>
                 </div>
               </div>
+              <button class="feature-carousel__details" type="button" @click="showDetails">Ver ficha del manga <span aria-hidden="true">↗</span></button>
             </div>
         </div>
       </transition>
@@ -90,6 +91,7 @@ import type { Manga } from '../types/Manga';
 const props = defineProps<{
   mangas: Manga[];
 }>();
+const emit = defineEmits<{ selectManga: [manga: Manga] }>();
 
 const currentIndex = ref(0);
 let autoPlayInterval: ReturnType<typeof setInterval> | undefined;
@@ -102,6 +104,10 @@ const next = () => {
 
 const prev = () => {
   currentIndex.value = (currentIndex.value - 1 + props.mangas.length) % props.mangas.length;
+};
+
+const showDetails = () => {
+  if (currentManga.value) emit('selectManga', currentManga.value);
 };
 
 const startAutoPlay = () => {
@@ -285,6 +291,25 @@ onUnmounted(() => {
   display: block;
 }
 
+.feature-carousel__details {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 17px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--shop-green);
+  padding: 11px 16px;
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  transition: transform 150ms ease, background 150ms ease;
+}
+
+.feature-carousel__details:hover { transform: translateY(-2px); background: #244738; }
+
 .feature-carousel__prices strong {
   color: #c34b31;
   font-size: 1.18rem;
@@ -358,6 +383,7 @@ onUnmounted(() => {
   }
   .feature-carousel__cover { width: min(68vw, 220px); }
   .feature-carousel__info { text-align: center; }
+  .feature-carousel__details { margin-inline: auto; }
   .feature-carousel__tags,
   .feature-carousel__prices { justify-content: center; }
   .feature-carousel__description { margin-block: 14px 18px; }

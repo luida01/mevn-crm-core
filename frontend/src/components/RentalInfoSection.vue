@@ -1,73 +1,68 @@
 <template>
   <div class="rental-panel">
     <div class="rental-panel__heading">
-      <p class="section-eyebrow">Fácil, flexible y a tu ritmo</p>
-      <h2>Alquila para probar. Compra para quedarte.</h2>
+      <p class="section-eyebrow">Un catálogo para explorar</p>
+      <h2>Descubre títulos y consulta sus datos.</h2>
     </div>
     
     <div class="rental-grid">
-      <!-- Benefits of Rental -->
       <div class="rental-card rental-card--green">
         <div class="rental-card__icon">
           <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
         </div>
-        <h3>Prueba algo nuevo</h3>
+        <h3>Explora historias</h3>
         <ul class="rental-card__details">
-          <li>✓ Elige un volumen disponible</li>
-          <li>✓ Paga solo por los días de alquiler</li>
-          <li>✓ Descubre nuevas series</li>
-          <li>✓ Sin comprometerte a comprar</li>
+          <li>✓ Recorre novedades y colecciones</li>
+          <li>✓ Encuentra títulos por género</li>
+          <li>✓ Mira las valoraciones disponibles</li>
         </ul>
       </div>
 
-      <!-- Pricing -->
       <div class="rental-card rental-card--gold">
         <div class="rental-card__icon">
           <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
           </svg>
         </div>
-        <h3>Precios claros</h3>
+        <h3>Abre la ficha</h3>
         <ul class="rental-card__details">
-          <li>📖 Consulta el precio de cada volumen</li>
-          <li>📚 Compara alquiler y compra</li>
-          <li>🎁 Elige lo que te convenga</li>
-          <li>⭐ Sin cargos sorpresa</li>
+          <li>📖 Revisa autor y sinopsis</li>
+          <li>📚 Consulta precio de compra</li>
+          <li>🏷️ Mira tarifa de alquiler diaria</li>
+          <li>📦 Comprueba el stock registrado</li>
         </ul>
       </div>
 
-      <!-- Return Process -->
       <div class="rental-card rental-card--clay">
         <div class="rental-card__icon">
           <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
           </svg>
         </div>
-        <h3>Devuelve fácilmente</h3>
+        <h3>Alquileres internos</h3>
         <ul class="rental-card__details">
-          <li>1. Avísanos que harás la devolución</li>
-          <li>2. Prepara el volumen</li>
-          <li>3. Entrégalo en la tienda</li>
-          <li>4. Recibe confirmación</li>
+          <li>El equipo registra el alquiler</li>
+          <li>Se fija una fecha de devolución</li>
+          <li>El panel actualiza el inventario</li>
         </ul>
       </div>
 
-      <!-- Rental vs Purchase -->
       <div class="rental-card rental-card--ink">
         <div class="rental-card__icon">
           <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
         </div>
-        <h3>Hazlo parte de tu colección</h3>
+        <h3>Compra en modo de prueba</h3>
         <ul class="rental-card__details">
-          <li>📚 Compra tu volumen favorito</li>
-          <li>💛 Conserva tus historias preferidas</li>
-          <li>🎁 Un gran regalo para otro lector</li>
-          <li>🏠 Siempre en tu estantería</li>
+          <li>El catálogo no reserva ejemplares</li>
+          <li>La tienda no acepta pedidos</li>
+          <li>El pago es solo una simulación</li>
+          <li>Revisa las condiciones actuales</li>
         </ul>
+        <router-link class="rental-card__link" to="/rental-policies">Ver estado del servicio <span aria-hidden="true">↗</span></router-link>
       </div>
     </div>
   </div>
@@ -157,6 +152,17 @@
   font-size: 0.77rem;
   line-height: 1.45;
   list-style: none;
+}
+
+.rental-card__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 13px;
+  color: var(--shop-green);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-decoration: none;
 }
 
 @media (max-width: 900px) {

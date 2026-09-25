@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 450" role="img" aria-labelledby="title">
-  <title id="title">No cover available</title>
-  <rect width="300" height="450" fill="#e5e7eb"/>
-  <rect x="62" y="76" width="176" height="246" rx="12" fill="#f9fafb" stroke="#9ca3af" stroke-width="8"/>
-  <path d="M96 140h108M96 178h108M96 216h72" stroke="#9ca3af" stroke-linecap="round" stroke-width="10"/>
-  <text x="150" y="372" fill="#6b7280" font-family="sans-serif" font-size="22" text-anchor="middle">No cover available</text>
+  <title id="title">Portada no disponible</title>
+  <rect width="300" height="450" fill="#eee4d3"/>
+  <rect x="62" y="76" width="176" height="246" rx="12" fill="#fffdf8" stroke="#b6ad9e" stroke-width="8"/>
+  <path d="M96 140h108M96 178h108M96 216h72" stroke="#b6ad9e" stroke-linecap="round" stroke-width="10"/>
+  <text x="150" y="372" fill="#76776f" font-family="sans-serif" font-size="22" text-anchor="middle">Portada no disponible</text>
 </svg>
