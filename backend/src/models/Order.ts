@@ -3,6 +3,18 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
 export type OrderKind = 'purchase' | 'rental';
 export type OrderStatus = 'pending' | 'paid' | 'expired' | 'cancelled' | 'failed';
 
+export interface IOrderReceipt {
+    number: string;
+    issuedAt: Date | string;
+    fiscal: false;
+    issuer: { businessName: string; contactEmail?: string; phone?: string; address?: string };
+    customer: { name: string; email: string };
+    items: Array<{ title: string; author: string; volume: number; kind: OrderKind; quantity: number; days?: number | null; unitAmount: number; lineTotal: number }>;
+    currency: string;
+    total: number;
+    payment: { provider: string; paymentIntentId?: string | null };
+}
+
 export interface IOrderItem {
     manga: Types.ObjectId;
     title: string;
@@ -28,7 +40,9 @@ export interface IOrder extends Document {
     stripePaymentIntentId?: string;
     expiresAt: Date;
     paidAt?: Date;
-    receipt?: Record<string, unknown>;
+    receipt?: IOrderReceipt;
+    locale: 'es' | 'en';
+    receiptEmail?: { status: 'pending' | 'sent'; attempts: number; nextAttemptAt: Date; lockedUntil: Date; sentAt?: Date; lastError?: string };
     createdAt: Date;
     updatedAt: Date;
 }
@@ -51,10 +65,20 @@ const OrderSchema = new Schema<IOrder>({
     confirmationToken: { type: String, required: true, unique: true, select: false, maxlength: 64 },
     stripePaymentIntentId: String,
     expiresAt: { type: Date, required: true }, paidAt: Date,
-    receipt: { type: Schema.Types.Mixed }
+    receipt: { type: Schema.Types.Mixed },
+    locale: { type: String, enum: ['es', 'en'], default: 'es' },
+    receiptEmail: { type: new Schema({
+        status: { type: String, enum: ['pending', 'sent'], required: true },
+        attempts: { type: Number, default: 0 },
+        nextAttemptAt: { type: Date, required: true },
+        lockedUntil: { type: Date, required: true },
+        sentAt: Date,
+        lastError: String
+    }, { _id: false }), default: undefined }
 }, { timestamps: true });
 
 OrderSchema.index({ createdAt: -1 });
 OrderSchema.index({ status: 1, createdAt: -1 });
+OrderSchema.index({ 'receiptEmail.status': 1, 'receiptEmail.nextAttemptAt': 1, 'receiptEmail.lockedUntil': 1 });
 
 export default mongoose.model<IOrder>('Order', OrderSchema);

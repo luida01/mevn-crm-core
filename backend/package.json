@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "check:workflows": "npm run build && node scripts/check-workflows.cjs",
     "check:stock-alerts": "npm run build && node scripts/check-stock-alerts.cjs",
+    "check:receipt-emails": "npm run build && node scripts/check-receipt-emails.cjs",
     "check:series-migration": "npm run build && node scripts/check-series-migration.cjs",
     "migrate:series": "npm run build && node scripts/migrate-series.cjs",
     "start": "node dist/server.js",

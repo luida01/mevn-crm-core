@@ -59,6 +59,11 @@ jobs:
         env:
           TEST_MONGODB_URI: mongodb://127.0.0.1:27017
 
+      - name: Verify Stripe test receipt emails with isolated SMTP and database
+        run: npm run check:receipt-emails --prefix backend
+        env:
+          TEST_MONGODB_URI: mongodb://127.0.0.1:27017
+
       - name: Install Chromium for browser tests
         run: npx playwright install --with-deps chromium
         working-directory: frontend

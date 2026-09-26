@@ -8,6 +8,7 @@ const theme = ref<Theme>((localStorage.getItem('mangago-theme') as Theme) || 'li
 
 const messages: Record<Locale, Record<string, string>> = {
   es: {
+    'checkoutDialog.receiptEmail': 'Cuando se confirme el pago, enviaremos el comprobante de prueba al correo indicado. No es una factura fiscal.',
     'alerts.title': 'Avísame cuando haya stock',
     'alerts.description': 'Déjanos tu correo y te avisaremos cuando este volumen vuelva a estar disponible.',
     'alerts.email': 'Tu correo electrónico', 'alerts.submit': 'Quiero recibir el aviso', 'alerts.sending': 'Procesando…',
@@ -46,6 +47,7 @@ const messages: Record<Locale, Record<string, string>> = {
     'common.light': 'Claro', 'common.dark': 'Oscuro', 'common.spanish': 'Español', 'common.english': 'Inglés', 'info.version': 'Información de esta versión'
   },
   en: {
+    'checkoutDialog.receiptEmail': 'Once payment is confirmed, we will email your test receipt to the address provided. This is not a tax invoice.',
     'alerts.title': 'Notify me when back in stock',
     'alerts.description': 'Leave your email and we will let you know when this volume is available again.',
     'alerts.email': 'Your email address', 'alerts.submit': 'Notify me', 'alerts.sending': 'Processing…',

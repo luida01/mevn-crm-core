@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import app from './app';
 import { expireOverdueCheckouts } from './controllers/checkoutController';
 import { processStockAlertsSafely } from './services/stockAlerts';
+import { processReceiptEmailsSafely } from './services/receiptEmails';
 
 const PORT = Number.parseInt(process.env.PORT || '5000', 10);
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mevn-crm';
@@ -23,7 +24,7 @@ const startServer = async (): Promise<void> => {
         void expireOverdueCheckouts().catch((error: unknown) => console.error('Checkout reservation cleanup failed:', error));
     }, 60_000);
     reservationSweep.unref();
-    const alertSweep = setInterval(() => { void processStockAlertsSafely(); }, 30_000);
+    const alertSweep = setInterval(() => { void Promise.all([processStockAlertsSafely(), processReceiptEmailsSafely()]); }, 30_000);
     alertSweep.unref();
     void expireOverdueCheckouts().catch((error: unknown) => console.error('Checkout reservation cleanup failed:', error));
 

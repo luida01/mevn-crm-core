@@ -1,4 +1,6 @@
 import { Request, Response } from 'express';
+import { processReceiptEmailsSafely } from '../services/receiptEmails';
+import { smtpConfigured } from '../services/mail';
 import mongoose from 'mongoose';
 import { randomBytes } from 'node:crypto';
 import Stripe from 'stripe';
@@ -22,7 +24,7 @@ const checkoutExpiry = () => new Date(Date.now() + 31 * 60 * 1000);
 const dollarsToCents = (amount: number) => Math.round((amount + Number.EPSILON) * 100);
 
 export const checkoutConfig = (_req: Request, res: Response) => {
-    res.json({ configured: Boolean(getStripe() && process.env.STRIPE_WEBHOOK_SECRET), provider: 'Stripe Checkout test mode', currency: currency() });
+    res.json({ configured: Boolean(getStripe() && process.env.STRIPE_WEBHOOK_SECRET), provider: 'Stripe Checkout test mode', currency: currency(), receiptEmailConfigured: smtpConfigured() });
 };
 
 const releaseReservation = async (mangaId: mongoose.Types.ObjectId, orderId: mongoose.Types.ObjectId): Promise<void> => {
@@ -84,10 +86,15 @@ const createPaidOrderEffects = async (order: IOrder, session: Stripe.Checkout.Se
             issuedAt: order.paidAt || new Date(), fiscal: false,
             issuer: { businessName: settings.businessName, contactEmail: settings.contactEmail, phone: settings.phone, address: settings.address },
             customer: { name: fullName, email }, items: receiptItems, currency: order.currency, total: order.total,
-            payment: { provider: 'Stripe test mode', paymentIntentId: session.payment_intent || null }
+            payment: { provider: 'Stripe test mode', paymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null }
         } }
     });
     await retainOrderReservations(order);
+    // Replayed Stripe events never reset delivery state or resend a sent receipt.
+    await Order.updateOne({ _id: order._id, receiptEmail: { $exists: false } }, {
+        $set: { receiptEmail: { status: 'pending', attempts: 0, nextAttemptAt: new Date(), lockedUntil: new Date(0) } }
+    });
+    await processReceiptEmailsSafely(order._id.toString());
 };
 
 export const createCheckoutSession = async (req: Request, res: Response) => {
@@ -155,7 +162,7 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
     const expiresAt = checkoutExpiry();
     const confirmationToken = randomBytes(32).toString('base64url');
     const order = await Order.create({ idempotencyKey, confirmationToken, status: 'pending', currency: currency(), items: orderItems, total,
-        customer: { name: contact.name.trim(), email: contact.email.trim().toLowerCase() }, expiresAt });
+        customer: { name: contact.name.trim(), email: contact.email.trim().toLowerCase() }, locale: input.locale === 'en' ? 'en' : 'es', expiresAt });
     const reservedIds: string[] = [];
     try {
         for (const [id, quantity] of grouped) {

@@ -39,6 +39,16 @@ Configura el dominio/remitente y los registros de autenticación de correo que i
 
 Los cambios de stock y las altas procesan hasta cinco avisos inmediatamente. En Node/Docker hay un trabajador cada 30 segundos. **En Vercel debes programar una llamada cada minuto** a `GET https://<api>/api/stock-alerts/process`, con `Authorization: Bearer <CRON_SECRET>`, usando un plan de cron que admita esa frecuencia o un programador externo. Esto entrega los lotes restantes y reintenta fallos incluso sin visitas a la tienda. No pongas el secreto en la URL. Cada ejecución procesa hasta cinco mensajes; ajusta capacidad y frecuencia si crece la lista. Los envíos se esperan dentro de la solicitud para evitar que una función serverless se congele antes de completar el trabajo.
 
+## Comprobante del checkout de Stripe en modo de prueba
+
+Al confirmar Stripe una sesión de prueba mediante su webhook firmado, la tienda envía al correo escrito durante el checkout un comprobante interno en el idioma elegido. Incluye el pedido, mangas y volúmenes, unidades, compra o alquiler y duración, importes y total. Aclara que es una operación de prueba, no cobra dinero real y no es una factura fiscal. Los pedidos de demostración creados localmente no generan correos.
+
+El correo usa las mismas variables SMTP de arriba. En Docker queda capturado en Mailpit (`http://localhost:8025`); en producción configura un remitente y proveedor SMTP reales. El checkout solo confirma el pedido después de validar la firma del webhook de Stripe. Si el SMTP falla, el pedido continúa confirmado y el comprobante queda pendiente con reintentos; el panel de pedidos muestra si se envió o sigue pendiente. El procesador protegido por `CRON_SECRET` también atiende esta cola.
+
+Para probar el flujo visual, configura en el entorno del backend una clave de prueba `STRIPE_SECRET_KEY=sk_test_...` y el secreto del webhook `STRIPE_WEBHOOK_SECRET=whsec_...`. En local, `stripe listen --forward-to localhost:5000/api/payments/webhook` reenvía los eventos y muestra un secreto `whsec_` de prueba para esa sesión del CLI. El checkout alojado por Stripe permite usar el número `4242 4242 4242 4242`, una fecha futura como `12/34`, cualquier CVC de tres dígitos y un código postal ficticio. Stripe simula la autorización; no hace falta una tarjeta bancaria real ni se realiza un cargo real. Consulta la [guía oficial de tarjetas de prueba de Stripe](https://docs.stripe.com/testing?numbers-or-method-or-token=tokens).
+
+La comprobación automatizada genera un evento firmado y usa un SMTP local aislado, por lo que verifica la integración del webhook y el correo sin introducir tarjetas en una sesión real de Checkout.
+
 ## Persistencia y límites
 
 - `StockAlert` guarda la cola en MongoDB. Un bloqueo temporal por registro evita que trabajadores concurrentes envíen el mismo aviso. Un error SMTP conserva el aviso y aplica una espera progresiva de 1 a 60 minutos.
@@ -51,3 +61,5 @@ Los cambios de stock y las altas procesan hasta cinco avisos inmediatamente. En 
 ## Verificación automatizada
 
 `cd backend; npm run check:stock-alerts` inicia una API, una base MongoDB temporal y un servidor SMTP local aislado. Comprueba correo inicial, duplicados, activación, cancelación, reposición, devolución, reintentos y ejecución concurrente. No usa la base de la tienda ni envía mensajes reales. La comprobación forma parte de CI junto con las pruebas del formulario y de la activación en navegador.
+
+`cd backend; npm run check:receipt-emails` verifica firma de webhook, sesión pagada y no pagada, contenido/localización del comprobante, reintentos, concurrencia y exclusión de pedidos de demostración con una base y SMTP locales aislados.

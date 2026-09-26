@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import nodemailer from 'nodemailer';
+import { createMailTransport } from './mail';
 import mongoose from 'mongoose';
 import StockAlert from '../models/StockAlert';
 import Manga from '../models/Manga';
@@ -42,14 +42,7 @@ export const processStockAlerts = async (mangaId?: string): Promise<void> => {
             { status: 'active' as const, manga: { $in: available.map(item => item._id) } }
         ]
     };
-    const smtp = nodemailer.createTransport({
-        host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 587),
-        secure: process.env.SMTP_SECURE === 'true',
-        requireTLS: process.env.SMTP_REQUIRE_TLS !== 'false',
-        auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD } : undefined,
-        connectionTimeout: 5000, greetingTimeout: 5000, socketTimeout: 8000,
-        disableFileAccess: true, disableUrlAccess: true
-    });
+    const smtp = createMailTransport();
     try {
         await Promise.all(Array.from({ length: 5 }, async () => {
             const lock = new Date(Date.now() + 120_000);

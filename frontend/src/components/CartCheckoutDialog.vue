@@ -19,6 +19,7 @@
           <p v-if="error" class="cart-checkout__error" role="alert">{{ error }}</p>
           <p v-if="!loadingConfig && !configured" class="cart-checkout__notice">{{ t('checkoutDialog.missingKeys') }}</p>
           <p class="cart-checkout__secure">{{ t('checkoutDialog.secure') }}</p>
+          <p v-if="receiptEmailConfigured" class="cart-checkout__secure">{{ t('checkoutDialog.receiptEmail') }}</p>
           <button class="cart-checkout__submit" type="submit" :disabled="busy || loadingConfig || !configured">{{ busy ? t('checkoutDialog.connecting') : `${t('checkoutDialog.continue')} · $${total.toFixed(2)}` }}</button>
         </form>
       </section>
@@ -30,7 +31,7 @@
 import { computed, onMounted, ref } from 'vue';
 import api from '../services/api';
 import type { CartLine } from '../stores/cartStore';
-import { t } from '../i18n';
+import { getLocale, t } from '../i18n';
 
 const props = defineProps<{ lines: CartLine[] }>();
 const emit = defineEmits<{ close: [] }>();
@@ -40,6 +41,7 @@ const email = ref('');
 const error = ref('');
 const busy = ref(false);
 const configured = ref(false);
+const receiptEmailConfigured = ref(false);
 const loadingConfig = ref(true);
 const idempotencyKey = ref(crypto.randomUUID());
 const lineTotal = (line: CartLine) => (line.kind === 'purchase' ? line.manga.price : line.manga.rentalPrice * line.days) * line.quantity;
@@ -52,6 +54,7 @@ const startPayment = async () => {
   try {
     const response = await api.post<{ url: string }>('/checkout/session', {
       customer: { name: name.value.trim(), email: email.value.trim() },
+      locale: getLocale(),
       items: props.lines.map(line => ({ mangaId: line.manga._id, kind: line.kind, quantity: line.quantity, days: line.kind === 'rental' ? line.days : undefined }))
     }, { headers: { 'Idempotency-Key': idempotencyKey.value } });
     if (!response.data.url) throw new Error(t('checkoutDialog.noUrl'));
@@ -67,7 +70,11 @@ const startPayment = async () => {
 };
 onMounted(async () => {
   dialogElement.value?.showModal();
-  try { configured.value = (await api.get<{ configured: boolean }>('/checkout/config')).data.configured; }
+  try {
+    const config = (await api.get<{ configured: boolean; receiptEmailConfigured: boolean }>('/checkout/config')).data;
+    configured.value = config.configured;
+    receiptEmailConfigured.value = config.receiptEmailConfigured;
+  }
   catch { configured.value = false; }
   finally { loadingConfig.value = false; }
 });

@@ -4,6 +4,7 @@ import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { rateLimit } from 'express-rate-limit';
 import Manga from '../models/Manga';
 import StockAlert from '../models/StockAlert';
+import { processReceiptEmails } from '../services/receiptEmails';
 import { DAY, findAlertByToken, mailConfigured, processStockAlerts, processStockAlertsSafely } from '../services/stockAlerts';
 
 const router = Router();
@@ -69,7 +70,7 @@ router.get('/process', async (req, res) => {
         res.sendStatus(401); return;
     }
     if (!mailConfigured()) { res.status(503).json({ code: 'EMAIL_UNAVAILABLE' }); return; }
-    try { await processStockAlerts(); res.json({ ok: true }); }
+    try { await Promise.all([processStockAlerts(), processReceiptEmails()]); res.json({ ok: true }); }
     catch { res.status(503).json({ code: 'QUEUE_UNAVAILABLE' }); }
 });
 
