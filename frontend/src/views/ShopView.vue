@@ -240,27 +240,62 @@ let lastFeaturedKey = '';
 const topAuthors = ref<Array<{ _id: string; count: number; avgScore?: number }>>([]);
 const mostReadWeek = ref<Manga[]>([]);
 const mostRentedToday = ref<Manga[]>([]);
+const featuredStorageKey = 'mangago-featured-series';
 
-const pickFeaturedManga = () => {
+const mangaKey = (manga: Manga) => `${manga.title.trim().toLocaleLowerCase()}|${manga.author.trim().toLocaleLowerCase()}`;
+
+const getPreviousFeaturedKey = () => {
+  try {
+    return sessionStorage.getItem(featuredStorageKey) || lastFeaturedKey;
+  } catch {
+    return lastFeaturedKey;
+  }
+};
+
+const rememberFeaturedKey = (key: string) => {
+  lastFeaturedKey = key;
+  try {
+    sessionStorage.setItem(featuredStorageKey, key);
+  } catch {
+    // Keep the in-memory fallback when browser storage is unavailable.
+  }
+};
+
+const pickFeaturedManga = async () => {
+  let candidates: Manga[] = [];
+  try {
+    const firstPage = await api.get<{ items: Manga[]; pages: number }>('/shop/catalog?limit=48&page=1&availability=available');
+    const pageCount = Math.max(1, firstPage.data.pages || 1);
+    const randomPage = Math.floor(Math.random() * pageCount) + 1;
+    const catalogPage = randomPage === 1
+      ? firstPage
+      : await api.get<{ items: Manga[]; pages: number }>(`/shop/catalog?limit=48&page=${randomPage}&availability=available`);
+    candidates = catalogPage.data.items;
+  } catch {
+    candidates = [...store.topRated, ...store.recentArrivals];
+  }
+
   const uniqueManga = new Map<string, Manga>();
-  for (const manga of [...store.topRated, ...store.recentArrivals]) {
+  for (const manga of candidates) {
     if (manga.stock <= 0) continue;
-    const key = `${manga.title.trim().toLocaleLowerCase()}|${manga.author.trim().toLocaleLowerCase()}`;
+    const key = mangaKey(manga);
     if (!uniqueManga.has(key)) uniqueManga.set(key, manga);
   }
 
   const available = [...uniqueManga.entries()];
-  const alternatives = available.filter(([key]) => key !== lastFeaturedKey);
+  const previousKey = getPreviousFeaturedKey();
+  const alternatives = available.filter(([key]) => key !== previousKey);
   const pool = alternatives.length ? alternatives : available;
   const selected = pool[Math.floor(Math.random() * pool.length)];
 
   if (selected) {
-    lastFeaturedKey = selected[0];
+    rememberFeaturedKey(selected[0]);
     featuredManga.value = selected[1];
     return;
   }
 
   featuredManga.value = store.topRated[0] || store.recentArrivals[0] || null;
+  if (featuredManga.value) rememberFeaturedKey(mangaKey(featuredManga.value));
 };
 
 const openMangaDetails = (manga: Manga) => {
@@ -290,7 +325,7 @@ onMounted(async () => {
     store.fetchCollection('anime-adaptations'),
     store.fetchCollection('horror')
   ]);
-  pickFeaturedManga();
+  await pickFeaturedManga();
 
   try {
     const authorsResponse = await api.get<Array<{ _id: string; count: number; avgScore?: number }>>('/shop/top-authors?limit=6');
