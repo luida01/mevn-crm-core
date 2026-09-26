@@ -136,3 +136,44 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   .invoice-document { break-inside: avoid; }
   @page { margin: 15mm; }
 }
+
+.appearance-controls { display: inline-flex; align-items: center; gap: 6px; }
+.admin-login-controls { display: flex; justify-content: flex-end; padding: 18px clamp(18px, 4vw, 54px) 0; }
+.appearance-controls button { min-width: 34px; height: 34px; border: 1px solid #ded8e4; border-radius: 999px; background: #fff; color: #493b55; cursor: pointer; font-size: .75rem; font-weight: 750; }
+.appearance-controls button:hover { border-color: #765394; color: #573d78; }
+html[data-theme="dark"] { color-scheme: dark; background: #17151b; }
+html[data-theme="dark"] body,
+html[data-theme="dark"] .admin-shell { background: #17151b; color: #eee9f2; }
+html[data-theme="dark"] .admin-header,
+html[data-theme="dark"] .admin-table-wrap,
+html[data-theme="dark"] .admin-stats article,
+html[data-theme="dark"] .admin-app-card,
+html[data-theme="dark"] .admin-dialog,
+html[data-theme="dark"] .admin-card,
+html[data-theme="dark"] .pipeline-card { border-color: #3c3545; background: #24212a; color: #eee9f2; }
+html[data-theme="dark"] .admin-brand,
+html[data-theme="dark"] .admin-page h1,
+html[data-theme="dark"] .admin-app-card h2,
+html[data-theme="dark"] .pipeline-card__heading strong { color: #f0eaf5; }
+html[data-theme="dark"] .admin-header nav a { color: #c1b7cc; }
+html[data-theme="dark"] .admin-header nav a:hover,
+html[data-theme="dark"] .admin-header nav a.selected { background: #302a38; color: #d6b4f0; }
+html[data-theme="dark"] .admin-form label,
+html[data-theme="dark"] .admin-muted,
+html[data-theme="dark"] .admin-page-header p:last-child,
+html[data-theme="dark"] .admin-table td,
+html[data-theme="dark"] .admin-table th { color: #c4bbc9; }
+html[data-theme="dark"] .admin-table th { border-color: #3c3545; background: #2c2732; }
+html[data-theme="dark"] .admin-table td { border-color: #38313f; }
+html[data-theme="dark"] .admin-toolbar input,
+html[data-theme="dark"] .admin-toolbar select,
+html[data-theme="dark"] .admin-form input:not([type=checkbox]),
+html[data-theme="dark"] .admin-form select,
+html[data-theme="dark"] .admin-form textarea { border-color: #494151; background: #1b191f; color: #f2edf5; }
+html[data-theme="dark"] .admin-button.secondary { border-color: #51475b; background: #302a38; color: #eee9f2; }
+html[data-theme="dark"] .pipeline-lane { background: #292530; }
+html[data-theme="dark"] .pipeline-lane.red { background: #34272b; }
+html[data-theme="dark"] .pipeline-lane.amber { background: #332d23; }
+html[data-theme="dark"] .pipeline-lane.green { background: #25312b; }
+html[data-theme="dark"] .admin-app-card > span { background: #342d3c; }
+html[data-theme="dark"] .admin-dialog__header { border-color: #403847; }

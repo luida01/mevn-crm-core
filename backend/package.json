@@ -11,7 +11,8 @@
     "check:series-migration": "npm run build && node scripts/check-series-migration.cjs",
     "migrate:series": "npm run build && node scripts/migrate-series.cjs",
     "start": "node dist/server.js",
-    "seed": "ts-node src/seed.ts"
+    "seed": "npm run build && node scripts/seed-demo.cjs",
+    "seed:demo": "npm run build && node scripts/seed-demo.cjs"
   },
   "keywords": [],
   "author": "",
@@ -34,6 +35,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/mongoose": "^5.11.96",
     "@types/node": "^24.10.1",
+    "@vercel/node": "^16.0.1",
     "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"

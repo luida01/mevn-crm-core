@@ -4,40 +4,42 @@
       <div class="shop-footer__grid">
         <div class="shop-footer__brand">
           <router-link to="/" class="shop-footer__wordmark" aria-label="MangaGo, inicio">MangaGo<span>•</span></router-link>
-          <p>Un lugar para descubrir historias, probar nuevas series y encontrar tu próxima favorita.</p>
-          <router-link to="/faq" class="shop-footer__help">¿Necesitas ayuda? <span aria-hidden="true">↗</span></router-link>
+          <p>{{ t('footer.tagline') }}</p>
+          <router-link to="/faq" class="shop-footer__help">{{ t('footer.help') }} <span aria-hidden="true">↗</span></router-link>
         </div>
 
-        <nav class="shop-footer__column" aria-label="Explorar tienda">
-          <h3>Explora</h3>
-          <a href="/#novedades">Novedades</a>
-          <a href="/#tendencias">Favoritos de lectores</a>
-          <a href="/#colecciones">Colecciones</a>
+        <nav class="shop-footer__column" :aria-label="t('footer.exploreLabel')">
+          <h3>{{ t('footer.explore') }}</h3>
+          <a href="/#novedades">{{ t('nav.new') }}</a>
+          <a href="/#tendencias">{{ t('footer.popular') }}</a>
+          <a href="/#colecciones">{{ t('nav.collections') }}</a>
         </nav>
 
-        <nav class="shop-footer__column" aria-label="Información">
-          <h3>Información</h3>
-          <router-link to="/faq">Preguntas frecuentes</router-link>
-          <router-link to="/rental-policies">Políticas de alquiler</router-link>
-          <router-link to="/return-policy">Política de devolución</router-link>
-          <router-link to="/terms">Términos y condiciones</router-link>
+        <nav class="shop-footer__column" :aria-label="t('footer.infoLabel')">
+          <h3>{{ t('footer.info') }}</h3>
+          <router-link to="/faq">{{ t('footer.faq') }}</router-link>
+          <router-link to="/rental-policies">{{ t('footer.rentals') }}</router-link>
+          <router-link to="/return-policy">{{ t('footer.return') }}</router-link>
+          <router-link to="/terms">{{ t('footer.terms') }}</router-link>
         </nav>
 
         <div class="shop-footer__note">
           <span aria-hidden="true">読</span>
-          <p>Una página a la vez.<br>Un mundo nuevo en cada historia.</p>
+          <p>{{ t('footer.note') }}</p>
         </div>
       </div>
 
       <div class="shop-footer__bottom">
         <p>© {{ currentYear }} MangaGo</p>
-        <a href="#top" aria-label="Volver al inicio">Volver arriba ↑</a>
+        <a href="#top" :aria-label="t('footer.backTop')">{{ t('footer.top') }}</a>
       </div>
     </div>
   </footer>
 </template>
 
 <script setup lang="ts">
+import { t } from '../i18n';
+
 const currentYear = new Date().getFullYear();
 </script>
 

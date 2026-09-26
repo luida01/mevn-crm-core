@@ -3,6 +3,7 @@ import { onMounted, onUnmounted, ref } from 'vue';
 import axios from 'axios';
 import api from '../services/api';
 import type { Manga } from '../types/Manga';
+import { t } from '../i18n';
 
 interface Catalog { items: Manga[]; total: number; page: number; pages: number }
 interface CatalogFilters { titles: string[]; authors: string[]; volumes: number[] }
@@ -84,38 +85,38 @@ onUnmounted(() => { controller?.abort(); window.removeEventListener('focus', ref
 <template>
   <section class="catalog-page__content" aria-labelledby="catalog-title">
     <div class="catalog-page__intro">
-      <p class="section-eyebrow">Tu próxima lectura</p>
-      <h1 id="catalog-title">Explora el catálogo</h1>
-      <p>Encuentra el manga y volumen que buscas. Filtra por disponibilidad, compra o alquiler.</p>
+      <p class="section-eyebrow">{{ t('catalog.eyebrow') }}</p>
+      <h1 id="catalog-title">{{ t('catalog.title') }}</h1>
+      <p>{{ t('catalog.description') }}</p>
     </div>
 
     <form class="catalog-toolbar" role="search" @submit.prevent="load()">
       <label class="catalog-toolbar__search">
-        <span>Buscar</span>
+        <span>{{ t('catalog.search') }}</span>
         <input v-model="search" type="search" maxlength="100" placeholder="Título, autor o género">
       </label>
       <div class="catalog-filters">
-        <label><span>Manga</span><select v-model="title" :disabled="filtersLoading" @change="changeTitle"><option value="">Todos los mangas</option><option v-for="item in filters.titles" :key="item" :value="item">{{ item }}</option></select></label>
-        <label><span>Volumen</span><select v-model="volume" :disabled="!title || filtersLoading" @change="load()"><option value="">Todos los volúmenes</option><option v-for="item in filters.volumes" :key="item" :value="String(item)">Vol. {{ item }}</option></select></label>
-        <label><span>Autor</span><select v-model="author" :disabled="filtersLoading" @change="load()"><option value="">Todos los autores</option><option v-for="item in filters.authors" :key="item" :value="item">{{ item }}</option></select></label>
-        <label><span>Disponibilidad</span><select v-model="availability" @change="load()"><option value="all">Con o sin stock</option><option value="available">Con stock</option><option value="unavailable">Sin stock</option></select></label>
-        <label><span>Modalidad</span><select v-model="mode" @change="load()"><option value="all">Compra y alquiler</option><option value="purchase">Para compra</option><option value="rental">Para alquiler</option></select></label>
+        <label><span>{{ t('catalog.manga') }}</span><select v-model="title" :disabled="filtersLoading" @change="changeTitle"><option value="">{{ t('catalog.allManga') }}</option><option v-for="item in filters.titles" :key="item" :value="item">{{ item }}</option></select></label>
+        <label><span>{{ t('catalog.volume') }}</span><select v-model="volume" :disabled="!title || filtersLoading" @change="load()"><option value="">{{ t('catalog.allVolumes') }}</option><option v-for="item in filters.volumes" :key="item" :value="String(item)">Vol. {{ item }}</option></select></label>
+        <label><span>{{ t('catalog.author') }}</span><select v-model="author" :disabled="filtersLoading" @change="load()"><option value="">{{ t('catalog.allAuthors') }}</option><option v-for="item in filters.authors" :key="item" :value="item">{{ item }}</option></select></label>
+        <label><span>{{ t('catalog.availability') }}</span><select v-model="availability" @change="load()"><option value="all">{{ t('catalog.allStock') }}</option><option value="available">{{ t('catalog.available') }}</option><option value="unavailable">{{ t('catalog.unavailable') }}</option></select></label>
+        <label><span>{{ t('catalog.mode') }}</span><select v-model="mode" @change="load()"><option value="all">{{ t('catalog.buyRent') }}</option><option value="purchase">{{ t('catalog.purchase') }}</option><option value="rental">{{ t('catalog.rental') }}</option></select></label>
       </div>
-      <div class="catalog-toolbar__actions"><button type="submit" :disabled="loading">Buscar</button><button type="button" class="catalog-toolbar__reset" :disabled="loading" @click="resetFilters">Limpiar filtros</button></div>
+      <div class="catalog-toolbar__actions"><button type="submit" :disabled="loading">{{ t('catalog.search') }}</button><button type="button" class="catalog-toolbar__reset" :disabled="loading" @click="resetFilters">{{ t('catalog.clear') }}</button></div>
     </form>
 
     <p v-if="error" class="section-empty" role="alert">{{ error }} <button type="button" @click="loadFilters().then(() => load())">Reintentar</button></p>
-    <p v-else-if="loading" class="section-loading" role="status">Cargando catálogo…</p>
+    <p v-else-if="loading" class="section-loading" role="status">{{ t('catalog.loading') }}</p>
     <template v-else>
-      <p class="catalog-count" aria-live="polite">{{ catalog.total }} {{ catalog.total === 1 ? 'volumen encontrado' : 'volúmenes encontrados' }}</p>
+      <p class="catalog-count" aria-live="polite">{{ catalog.total }} {{ t(catalog.total === 1 ? 'catalog.foundOne' : 'catalog.foundMany') }}</p>
       <div class="arrival-grid" v-if="catalog.items.length">
         <button v-for="manga in catalog.items" :key="manga._id" type="button" class="arrival-card" @click="emit('selectManga', manga)">
-          <div class="arrival-card__cover"><img :src="manga.coverImage || '/no-cover.svg'" :alt="manga.title" loading="lazy" @error="coverError"><span class="catalog-stock" :class="{ 'catalog-stock--empty': manga.stock < 1 }">{{ manga.stock > 0 ? 'Disponible' : 'Sin stock' }}</span></div>
+          <div class="arrival-card__cover"><img :src="manga.coverImage || '/no-cover.svg'" :alt="manga.title" loading="lazy" @error="coverError"><span class="catalog-stock" :class="{ 'catalog-stock--empty': manga.stock < 1 }">{{ manga.stock > 0 ? t('catalog.available') : t('catalog.unavailable') }}</span></div>
           <div class="arrival-card__body"><h2>{{ manga.title }}</h2><p class="arrival-card__author">Vol. {{ manga.volume }} · {{ manga.author }}</p><div class="arrival-card__prices"><span v-if="manga.rentalPrice > 0">Alquiler · ${{ manga.rentalPrice.toFixed(2) }} / día</span><span v-if="manga.price > 0">Compra · ${{ manga.price.toFixed(2) }}</span></div></div>
         </button>
       </div>
-      <div v-else class="section-empty">No hay mangas para esta combinación de filtros. Prueba a cambiar alguno.</div>
-      <nav class="catalog-pagination" v-if="catalog.pages > 1" aria-label="Páginas del catálogo"><button type="button" :disabled="catalog.page <= 1" @click="load(catalog.page - 1)">Anterior</button><span>{{ catalog.page }} / {{ catalog.pages }}</span><button type="button" :disabled="catalog.page >= catalog.pages" @click="load(catalog.page + 1)">Siguiente</button></nav>
+      <div v-else class="section-empty">{{ t('catalog.notFound') }}</div>
+      <nav class="catalog-pagination" v-if="catalog.pages > 1" aria-label="Páginas del catálogo"><button type="button" :disabled="catalog.page <= 1" @click="load(catalog.page - 1)">{{ t('catalog.previous') }}</button><span>{{ catalog.page }} / {{ catalog.pages }}</span><button type="button" :disabled="catalog.page >= catalog.pages" @click="load(catalog.page + 1)">{{ t('catalog.next') }}</button></nav>
     </template>
   </section>
 </template>

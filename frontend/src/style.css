@@ -1172,3 +1172,19 @@ a {
     transition-duration: 0.01ms !important;
   }
 }
+
+.appearance-controls { display: inline-flex; align-items: center; gap: 6px; }
+.appearance-controls button { min-width: 34px; height: 34px; border: 1px solid var(--shop-line); border-radius: 999px; background: var(--shop-surface); color: var(--shop-ink); cursor: pointer; font-size: .75rem; font-weight: 750; }
+.appearance-controls button:hover { border-color: var(--shop-accent); color: var(--shop-accent); }
+html[data-theme="dark"] { color-scheme: dark; --shop-paper: #171916; --shop-paper-deep: #20231e; --shop-surface: #242821; --shop-ink: #f2eee5; --shop-muted: #b4b2a9; --shop-line: #41463c; --shop-accent: #e27b61; --shop-accent-dark: #c85a41; --shop-green: #9ab8a8; --shop-gold: #e5b651; background: var(--shop-paper); }
+html[data-theme="dark"] body,
+html[data-theme="dark"] .storefront,
+html[data-theme="dark"] .bg-gray-100 { background: var(--shop-paper); color: var(--shop-ink); }
+html[data-theme="dark"] .site-header { border-color: var(--shop-line); background: rgb(36 40 33 / 94%); }
+html[data-theme="dark"] .site-nav a:not(.site-nav__cart) { color: #ded9cf; }
+html[data-theme="dark"] .shop-hero::before { opacity: .16; }
+html[data-theme="dark"] :is(.arrival-card, .community-card, .catalog-card, .manga-card, .info-page, .faq-item, .rental-info-card, .cart-panel, .checkout-panel, .shop-dialog, .manga-dialog, .catalog-filter, .catalog-toolbar) { border-color: var(--shop-line); background-color: var(--shop-surface); color: var(--shop-ink); }
+html[data-theme="dark"] :is(.home-section__heading > p, .arrival-card__author, .section-empty, .section-loading, .catalog-description, .catalog-filter label, .info-page p, .faq-item p, .rental-info-card p, .cart-line p, .checkout-panel p) { color: var(--shop-muted); }
+html[data-theme="dark"] :is(input, select, textarea) { border-color: var(--shop-line); background-color: #1b1e1a; color: var(--shop-ink); }
+html[data-theme="dark"] .shop-footer { background: #10120f; }
+@media (max-width: 760px) { .site-nav .appearance-controls { justify-content: flex-start; } }

@@ -1,8 +1,8 @@
 <template>
   <div class="rental-panel">
     <div class="rental-panel__heading">
-      <p class="section-eyebrow">Un catálogo para explorar</p>
-      <h2>Descubre títulos y consulta sus datos.</h2>
+      <p class="section-eyebrow">{{ t('home.infoEyebrow') }}</p>
+      <h2>{{ t('home.infoTitle') }}</h2>
     </div>
     
     <div class="rental-grid">
@@ -12,11 +12,11 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
         </div>
-        <h3>Explora historias</h3>
+        <h3>{{ t('home.exploreStories') }}</h3>
         <ul class="rental-card__details">
-          <li>✓ Recorre novedades y colecciones</li>
-          <li>✓ Encuentra títulos por género</li>
-          <li>✓ Mira las valoraciones disponibles</li>
+          <li>✓ {{ t('home.browseCollections') }}</li>
+          <li>✓ {{ t('home.findGenres') }}</li>
+          <li>✓ {{ t('home.ratings') }}</li>
         </ul>
       </div>
 
@@ -26,12 +26,12 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
           </svg>
         </div>
-        <h3>Abre la ficha</h3>
+        <h3>{{ t('home.openDetails') }}</h3>
         <ul class="rental-card__details">
-          <li>📖 Revisa autor y sinopsis</li>
-          <li>📚 Consulta precio de compra</li>
-          <li>🏷️ Mira tarifa de alquiler diaria</li>
-          <li>📦 Comprueba el stock registrado</li>
+          <li>📖 {{ t('home.synopsis') }}</li>
+          <li>📚 {{ t('home.buyPrice') }}</li>
+          <li>🏷️ {{ t('home.rentalRate') }}</li>
+          <li>📦 {{ t('home.recordedStock') }}</li>
         </ul>
       </div>
 
@@ -41,11 +41,11 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
           </svg>
         </div>
-        <h3>Alquileres internos</h3>
+        <h3>{{ t('home.internalRentals') }}</h3>
         <ul class="rental-card__details">
-          <li>El equipo registra el alquiler</li>
-          <li>Se fija una fecha de devolución</li>
-          <li>El panel actualiza el inventario</li>
+          <li>{{ t('home.staffRental') }}</li>
+          <li>{{ t('home.returnDate') }}</li>
+          <li>{{ t('home.inventoryUpdate') }}</li>
         </ul>
       </div>
 
@@ -55,21 +55,21 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
         </div>
-        <h3>Compra en modo de prueba</h3>
+        <h3>{{ t('home.testCheckout') }}</h3>
         <ul class="rental-card__details">
-          <li>La reserva se inicia al comenzar el pago</li>
-          <li>Las compras y alquileres comparten carrito</li>
-          <li>Stripe Checkout usa tarjetas de prueba</li>
+          <li>{{ t('home.checkoutReserve') }}</li>
+          <li>{{ t('home.mixedCart') }}</li>
+          <li>{{ t('home.testCards') }}</li>
           <li>Revisa las condiciones actuales</li>
         </ul>
-        <router-link class="rental-card__link" to="/rental-policies">Ver estado del servicio <span aria-hidden="true">↗</span></router-link>
+        <router-link class="rental-card__link" to="/rental-policies">{{ t('home.serviceStatus') }} <span aria-hidden="true">↗</span></router-link>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-// No props or state needed for this static component
+import { t } from '../i18n';
 </script>
 
 <style scoped>

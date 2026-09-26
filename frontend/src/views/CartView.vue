@@ -2,38 +2,38 @@
   <div class="storefront min-h-screen">
     <ShopHeader />
     <main class="cart-page">
-      <div class="cart-page__heading"><div><p class="section-eyebrow">Tu selección</p><h1>Tu carrito</h1><p>Combina volúmenes para comprar y alquilar en una sola revisión.</p></div><router-link to="/catalogo">← Seguir explorando</router-link></div>
+      <div class="cart-page__heading"><div><p class="section-eyebrow">{{ t('cart.selection') }}</p><h1>{{ t('cart.title') }}</h1><p>{{ t('cart.description') }}</p></div><router-link to="/catalogo">{{ t('cart.continue') }}</router-link></div>
 
       <div v-if="cart.lines.length" class="cart-layout">
-        <section class="cart-lines" aria-label="Artículos en tu carrito">
+        <section class="cart-lines" :aria-label="t('cart.items')">
           <article v-for="line in cart.lines" :key="lineKey(line)" class="cart-line">
             <img :src="line.manga.coverImage || '/no-cover.svg'" :alt="`Portada de ${line.manga.title}`" @error="coverError">
             <div class="cart-line__details">
-              <p class="cart-line__type" :class="`cart-line__type--${line.kind}`">{{ line.kind === 'rental' ? 'Alquiler' : 'Compra' }}</p>
+              <p class="cart-line__type" :class="`cart-line__type--${line.kind}`">{{ line.kind === 'rental' ? t('cart.rent') : t('cart.buy') }}</p>
               <h2>{{ line.manga.title }}</h2><p class="cart-line__meta">Vol. {{ line.manga.volume }} · {{ line.manga.author }}</p>
-              <p class="cart-line__availability" :class="{ 'cart-line__availability--low': !lineHasAvailability(line) }">{{ lineHasAvailability(line) ? `${line.manga.stock} en stock` : line.manga.stock < 1 ? 'Sin stock disponible' : `Stock insuficiente para el carrito` }} · El carrito no reserva unidades</p>
+              <p class="cart-line__availability" :class="{ 'cart-line__availability--low': !lineHasAvailability(line) }">{{ lineHasAvailability(line) ? `${line.manga.stock} ${t('cart.available')}` : line.manga.stock < 1 ? t('cart.outOfStock') : t('cart.insufficient') }} · {{ t('cart.noReservation') }}</p>
               <div class="cart-line__controls">
-                <label><span>Cantidad</span><input type="number" min="1" :max="maxQuantity(line)" :value="line.quantity" :disabled="line.manga.stock < 1" @change="changeQuantity(line,$event)"></label>
-                <label v-if="line.kind === 'rental'"><span>Días de alquiler</span><input type="number" min="1" max="30" :value="line.days" @change="changeDays(line,$event)"></label>
+                <label><span>{{ t('cart.quantity') }}</span><input type="number" min="1" :max="maxQuantity(line)" :value="line.quantity" :disabled="line.manga.stock < 1" @change="changeQuantity(line,$event)"></label>
+                <label v-if="line.kind === 'rental'"><span>{{ t('cart.days') }}</span><input type="number" min="1" max="30" :value="line.days" @change="changeDays(line,$event)"></label>
               </div>
             </div>
-            <div class="cart-line__price"><strong>${{ lineTotal(line).toFixed(2) }}</strong><small>{{ line.kind === 'rental' ? `$${line.manga.rentalPrice.toFixed(2)} × ${line.days} día(s)` : `$${line.manga.price.toFixed(2)} c/u` }}</small><button type="button" @click="cart.remove(lineKey(line))">Quitar</button></div>
+            <div class="cart-line__price"><strong>${{ lineTotal(line).toFixed(2) }}</strong><small>{{ line.kind === 'rental' ? `$${line.manga.rentalPrice.toFixed(2)} × ${line.days} día(s)` : `$${line.manga.price.toFixed(2)} c/u` }}</small><button type="button" @click="cart.remove(lineKey(line))">{{ t('cart.remove') }}</button></div>
           </article>
         </section>
 
-        <aside class="cart-summary" aria-label="Resumen del carrito">
-          <p class="section-eyebrow">Resumen</p><h2>Tu pedido</h2>
-          <div><span>Artículos</span><strong>{{ cart.itemCount }}</strong></div>
-          <div class="cart-summary__total"><span>Total estimado</span><strong>${{ cart.subtotal.toFixed(2) }}</strong></div>
+        <aside class="cart-summary" :aria-label="t('cart.summary')">
+          <p class="section-eyebrow">{{ t('cart.summary') }}</p><h2>{{ t('cart.order') }}</h2>
+          <div><span>{{ t('cart.items') }}</span><strong>{{ cart.itemCount }}</strong></div>
+          <div class="cart-summary__total"><span>{{ t('cart.total') }}</span><strong>${{ cart.subtotal.toFixed(2) }}</strong></div>
           <p>Los alquileres se calculan por volumen, unidad y día.</p>
           <p v-if="cancelMessage" class="cart-summary__error" role="status">{{ cancelMessage }}</p>
-          <p v-if="hasUnavailableStock" class="cart-summary__error" role="alert">Revisa las cantidades: algún volumen ya no tiene stock suficiente.</p>
-          <button type="button" :disabled="hasUnavailableStock" @click="checkoutOpen = true">Continuar al pago</button>
-          <small>Stripe Checkout en modo de prueba · no se aceptan pagos reales</small>
+          <p v-if="hasUnavailableStock" class="cart-summary__error" role="alert">{{ t('cart.stockChanged') }}</p>
+          <button type="button" :disabled="hasUnavailableStock" @click="checkoutOpen = true">{{ t('cart.checkout') }}</button>
+          <small>{{ t('cart.testPayment') }}</small>
         </aside>
       </div>
 
-      <section v-else class="cart-empty"><span aria-hidden="true">▤</span><h2>Tu carrito está vacío</h2><p>Agrega un volumen para comprarlo o alquilarlo y aparecerá aquí.</p><router-link to="/catalogo">Explorar catálogo</router-link></section>
+      <section v-else class="cart-empty"><span aria-hidden="true">▤</span><h2>{{ t('cart.empty') }}</h2><p>{{ t('cart.emptyText') }}</p><router-link to="/catalogo">{{ t('cart.explore') }}</router-link></section>
     </main>
     <CartCheckoutDialog v-if="checkoutOpen" :lines="cart.lines" @close="checkoutOpen = false" />
     <ShopFooter />
@@ -48,6 +48,7 @@ import CartCheckoutDialog from '../components/CartCheckoutDialog.vue';
 import ShopFooter from '../components/ShopFooter.vue';
 import ShopHeader from '../components/ShopHeader.vue';
 import { useCartStore, type CartLine } from '../stores/cartStore';
+import { t } from '../i18n';
 
 const cart = useCartStore();
 const route = useRoute();
@@ -57,9 +58,9 @@ onMounted(async () => {
   if (route.query.payment !== 'cancelled' || typeof route.query.order_id !== 'string' || typeof route.query.token !== 'string') return;
   try {
     await api.post(`/checkout/cancel/${encodeURIComponent(route.query.order_id)}`, undefined, { params: { token: route.query.token } });
-    cancelMessage.value = 'Pago cancelado. Liberamos las unidades reservadas; puedes volver a intentarlo cuando quieras.';
+    cancelMessage.value = t('cart.cancelled');
   } catch {
-    cancelMessage.value = 'El pago se canceló. Estamos liberando la reserva; si el stock tarda unos minutos en actualizarse, vuelve a cargar la tienda.';
+    cancelMessage.value = t('cart.cancelling');
   }
 });
 const lineKey = (line: CartLine) => `${line.manga._id}:${line.kind}`;

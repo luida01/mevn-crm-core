@@ -9,30 +9,30 @@
       @click="closeOnBackdrop"
     >
       <div class="shop-manga-dialog__layout">
-        <button class="shop-manga-dialog__close" type="button" aria-label="Cerrar detalles" autofocus @click="close">×</button>
+      <button class="shop-manga-dialog__close" type="button" :aria-label="t('details.close')" autofocus @click="close">×</button>
         <div class="shop-manga-dialog__cover">
           <img :src="manga.coverImage || '/no-cover.svg'" :alt="`Portada de ${manga.title}`" @error="handleCoverError">
         </div>
         <div class="shop-manga-dialog__content">
-          <p class="shop-manga-dialog__eyebrow">Volumen {{ manga.volume }} <span aria-hidden="true">·</span> {{ manga.genre || 'Manga' }}</p>
+          <p class="shop-manga-dialog__eyebrow">{{ t('details.volume') }} {{ manga.volume }} <span aria-hidden="true">·</span> {{ manga.genre || 'Manga' }}</p>
           <h2 :id="titleId">{{ manga.title }}</h2>
           <p class="shop-manga-dialog__author">{{ manga.author }}<span v-if="manga.publishedYear"> · {{ manga.publishedYear }}</span></p>
-          <div v-if="manga.malScore" class="shop-manga-dialog__score">★ {{ manga.malScore.toFixed(1) }} <span>valoración en MyAnimeList</span></div>
-          <p class="shop-manga-dialog__description">{{ manga.description || 'Todavía no hay una sinopsis disponible para este título.' }}</p>
+          <div v-if="manga.malScore" class="shop-manga-dialog__score">★ {{ manga.malScore.toFixed(1) }} <span>{{ t('details.rating') }}</span></div>
+          <p class="shop-manga-dialog__description">{{ manga.description || t('details.noSynopsis') }}</p>
           <div class="shop-manga-dialog__prices">
-            <div><span>Alquiler por día</span><strong>${{ manga.rentalPrice }}</strong></div>
-            <div><span>Precio de compra</span><strong>${{ manga.price }}</strong></div>
+            <div><span>{{ t('details.rentalDay') }}</span><strong>${{ manga.rentalPrice }}</strong></div>
+            <div><span>{{ t('details.purchase') }}</span><strong>${{ manga.price }}</strong></div>
           </div>
           <p class="shop-manga-dialog__stock" :class="{ 'shop-manga-dialog__stock--empty': manga.stock < 1 }">
             <span aria-hidden="true">{{ manga.stock > 0 ? '●' : '○' }}</span>
-            {{ manga.stock > 0 ? `${manga.stock} ${manga.stock === 1 ? 'unidad disponible' : 'unidades disponibles'}` : 'Sin unidades disponibles' }}
+            {{ manga.stock > 0 ? `${manga.stock} ${t(manga.stock === 1 ? 'details.oneAvailable' : 'details.manyAvailable')}` : t('details.noneAvailable') }}
           </p>
-          <p class="shop-manga-dialog__note">Puedes combinar compras y alquileres en el mismo carrito. El stock se reserva por 31 minutos al continuar a Stripe Checkout en modo de prueba.</p>
+          <p class="shop-manga-dialog__note">{{ t('details.note') }}</p>
           <div class="shop-manga-dialog__actions">
-            <button type="button" class="shop-manga-dialog__rent" :disabled="manga.stock < 1 || manga.rentalPrice <= 0" @click="emit('addToCart', 'rental')">Añadir alquiler</button>
-            <button type="button" class="shop-manga-dialog__buy" :disabled="manga.stock < 1 || manga.price <= 0" @click="emit('addToCart', 'purchase')">Añadir compra</button>
+            <button type="button" class="shop-manga-dialog__rent" :disabled="manga.stock < 1 || manga.rentalPrice <= 0" @click="emit('addToCart', 'rental')">{{ t('details.addRental') }}</button>
+            <button type="button" class="shop-manga-dialog__buy" :disabled="manga.stock < 1 || manga.price <= 0" @click="emit('addToCart', 'purchase')">{{ t('details.addPurchase') }}</button>
           </div>
-          <button class="shop-manga-dialog__return" type="button" @click="close">Volver al catálogo <span aria-hidden="true">↗</span></button>
+          <button class="shop-manga-dialog__return" type="button" @click="close">{{ t('details.back') }} <span aria-hidden="true">↗</span></button>
         </div>
       </div>
     </dialog>
@@ -42,6 +42,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import type { Manga } from '../types/Manga';
+import { t } from '../i18n';
 
 const props = defineProps<{ manga: Manga }>();
 const emit = defineEmits<{ close: []; addToCart: [kind: 'rental' | 'purchase'] }>();

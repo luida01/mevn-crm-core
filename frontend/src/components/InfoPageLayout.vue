@@ -11,7 +11,7 @@
     <main class="info-main">
       <aside v-if="notice" class="info-notice" role="note">
         <span class="info-notice__icon" aria-hidden="true">i</span>
-        <div><strong>Información de esta versión</strong><p>{{ notice }}</p></div>
+        <div><strong>{{ t('info.version') }}</strong><p>{{ notice }}</p></div>
       </aside>
       <div class="info-page__content"><slot /></div>
     </main>
@@ -22,6 +22,7 @@
 <script setup lang="ts">
 import ShopFooter from './ShopFooter.vue';
 import ShopHeader from './ShopHeader.vue';
+import { t } from '../i18n';
 
 defineProps<{
   eyebrow: string;

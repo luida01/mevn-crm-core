@@ -57,11 +57,19 @@ async function main() {
     checks++;
   };
   try {
-    for (let attempt = 0; attempt < 100; attempt++) {
+    const readyDeadline = Date.now() + 60_000;
+    let ready = false;
+    while (Date.now() < readyDeadline) {
       if (child.exitCode !== null) throw new Error('API stopped: ' + output);
-      try { if ((await fetch(base + '/health/ready')).ok) break; } catch {}
-      await new Promise(resolve => setTimeout(resolve, 100));
+      try {
+        if ((await fetch(base + '/health/ready', { signal: AbortSignal.timeout(2000) })).ok) {
+          ready = true;
+          break;
+        }
+      } catch {}
+      await new Promise(resolve => setTimeout(resolve, 250));
     }
+    if (!ready) throw new Error('API did not become ready within 60 seconds: ' + output);
     token = (await request('POST', '/auth/login', { username: 'workflow-check', password })).token;
     assert.ok(token);
     for (const route of ['/customers', '/rentals', '/settings', '/invoices']) await request('GET', route, undefined, 401, false);

@@ -2,15 +2,15 @@
   <div class="thematic-collection">
     <h3 class="thematic-collection__title">{{ title }}</h3>
     
-    <div v-if="loading" class="section-loading" role="status">Buscando títulos…</div>
+    <div v-if="loading" class="section-loading" role="status">{{ t('home.collectionLoading') }}</div>
     
     <div v-else-if="mangas.length === 0" class="thematic-collection__empty">
-      No hay mangas disponibles en esta colección.
+      {{ t('home.collectionEmpty') }}
     </div>
     
     <div v-else class="relative">
       <!-- Scrollable Container -->
-      <div class="thematic-collection__scroller" tabindex="0" :aria-label="`Desplazarse por la colección ${title}`">
+      <div class="thematic-collection__scroller" tabindex="0" :aria-label="`${t('home.scrollCollection')} ${title}`">
         <div class="thematic-collection__rail">
           <button
             v-for="manga in mangas" 
@@ -42,6 +42,7 @@
 
 <script setup lang="ts">
 import type { Manga } from '../types/Manga';
+import { t } from '../i18n';
 
 const handleCoverError = (event: Event) => {
   const image = event.currentTarget as HTMLImageElement;

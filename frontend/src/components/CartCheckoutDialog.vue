@@ -2,24 +2,24 @@
   <Teleport to="body">
     <dialog ref="dialogElement" class="cart-checkout" aria-labelledby="cart-checkout-title" @cancel.prevent="close" @close="emit('close')" @click="closeOnBackdrop">
       <section class="cart-checkout__panel">
-        <button class="cart-checkout__close" type="button" aria-label="Cerrar checkout" autofocus @click="close">×</button>
-        <p class="cart-checkout__badge">◉ Stripe · modo de prueba</p>
-        <h2 id="cart-checkout-title">Completa tu pedido</h2>
-        <p class="cart-checkout__intro">Una sola operación para comprar y alquilar. El inventario se reserva durante 30 minutos mientras pagas.</p>
+        <button class="cart-checkout__close" type="button" :aria-label="t('checkoutDialog.close')" autofocus @click="close">×</button>
+        <p class="cart-checkout__badge">{{ t('checkoutDialog.badge') }}</p>
+        <h2 id="cart-checkout-title">{{ t('checkoutDialog.title') }}</h2>
+        <p class="cart-checkout__intro">{{ t('checkoutDialog.intro') }}</p>
         <ul class="cart-checkout__items">
           <li v-for="line in lines" :key="`${line.manga._id}:${line.kind}`">
-            <span><strong>{{ line.manga.title }} · Vol. {{ line.manga.volume }}</strong><small>{{ line.kind === 'rental' ? `Alquiler · ${line.days} ${line.days === 1 ? 'día' : 'días'} · ${line.quantity} unidad(es)` : `Compra · ${line.quantity} unidad(es)` }}</small></span>
+            <span><strong>{{ line.manga.title }} · Vol. {{ line.manga.volume }}</strong><small>{{ line.kind === 'rental' ? `${t('checkoutDialog.rent')} · ${line.days} ${t(line.days === 1 ? 'checkoutDialog.day' : 'checkoutDialog.days')} · ${line.quantity} ${t('checkoutDialog.unit')}` : `${t('checkoutDialog.buy')} · ${line.quantity} ${t('checkoutDialog.unit')}` }}</small></span>
             <b>${{ lineTotal(line).toFixed(2) }}</b>
           </li>
         </ul>
-        <div class="cart-checkout__total"><span>Total de prueba</span><strong>${{ total.toFixed(2) }}</strong></div>
+        <div class="cart-checkout__total"><span>{{ t('checkoutDialog.total') }}</span><strong>${{ total.toFixed(2) }}</strong></div>
         <form class="cart-checkout__form" @submit.prevent="startPayment">
-          <label>Nombre completo<input v-model="name" required minlength="2" maxlength="160" autocomplete="name" placeholder="Tu nombre"></label>
-          <label>Correo electrónico<input v-model="email" required type="email" maxlength="254" autocomplete="email" placeholder="tu@correo.com"></label>
+          <label>{{ t('checkoutDialog.name') }}<input v-model="name" required minlength="2" maxlength="160" autocomplete="name" :placeholder="t('checkoutDialog.nameHint')"></label>
+          <label>{{ t('checkoutDialog.email') }}<input v-model="email" required type="email" maxlength="254" autocomplete="email" :placeholder="t('checkoutDialog.emailHint')"></label>
           <p v-if="error" class="cart-checkout__error" role="alert">{{ error }}</p>
-          <p v-if="!loadingConfig && !configured" class="cart-checkout__notice">Stripe está en modo de prueba, pero faltan sus claves de prueba en el backend. El carrito y el inventario no se modificarán hasta iniciar el checkout.</p>
-          <p class="cart-checkout__secure">El pago se procesa en la página segura de Stripe. Usa exclusivamente tarjetas de prueba.</p>
-          <button class="cart-checkout__submit" type="submit" :disabled="busy || loadingConfig || !configured">{{ busy ? 'Conectando con Stripe…' : `Continuar a Stripe · $${total.toFixed(2)}` }}</button>
+          <p v-if="!loadingConfig && !configured" class="cart-checkout__notice">{{ t('checkoutDialog.missingKeys') }}</p>
+          <p class="cart-checkout__secure">{{ t('checkoutDialog.secure') }}</p>
+          <button class="cart-checkout__submit" type="submit" :disabled="busy || loadingConfig || !configured">{{ busy ? t('checkoutDialog.connecting') : `${t('checkoutDialog.continue')} · $${total.toFixed(2)}` }}</button>
         </form>
       </section>
     </dialog>
@@ -30,6 +30,7 @@
 import { computed, onMounted, ref } from 'vue';
 import api from '../services/api';
 import type { CartLine } from '../stores/cartStore';
+import { t } from '../i18n';
 
 const props = defineProps<{ lines: CartLine[] }>();
 const emit = defineEmits<{ close: [] }>();
@@ -53,12 +54,12 @@ const startPayment = async () => {
       customer: { name: name.value.trim(), email: email.value.trim() },
       items: props.lines.map(line => ({ mangaId: line.manga._id, kind: line.kind, quantity: line.quantity, days: line.kind === 'rental' ? line.days : undefined }))
     }, { headers: { 'Idempotency-Key': idempotencyKey.value } });
-    if (!response.data.url) throw new Error('Stripe no devolvió la dirección de pago.');
+    if (!response.data.url) throw new Error(t('checkoutDialog.noUrl'));
     window.location.assign(response.data.url);
   } catch (requestError: unknown) {
     const message = typeof requestError === 'object' && requestError !== null && 'response' in requestError
-      ? ((requestError as { response?: { data?: { message?: string } } }).response?.data?.message || 'No se pudo iniciar el pago. Revisa tu conexión e inténtalo de nuevo.')
-      : requestError instanceof Error ? requestError.message : 'No se pudo iniciar el pago.';
+      ? ((requestError as { response?: { data?: { message?: string } } }).response?.data?.message || t('checkoutDialog.failed'))
+      : requestError instanceof Error ? requestError.message : t('checkoutDialog.failed');
     error.value = message;
     if (typeof requestError === 'object' && requestError !== null && 'response' in requestError) idempotencyKey.value = crypto.randomUUID();
     busy.value = false;

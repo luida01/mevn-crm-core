@@ -13,15 +13,15 @@
 
     <section class="shop-hero" aria-labelledby="shop-hero-title">
       <div class="shop-hero__copy">
-        <p class="shop-hero__eyebrow">Tu próxima lectura empieza aquí</p>
-        <h1 id="shop-hero-title" class="shop-hero__title">Historias que te llevan <span>a otros mundos.</span></h1>
-        <p class="shop-hero__description">Descubre tu próxima serie favorita. Explora títulos y consulta los precios y la disponibilidad de cada volumen.</p>
+        <p class="shop-hero__eyebrow">{{ t('home.eyebrow') }}</p>
+        <h1 id="shop-hero-title" class="shop-hero__title">{{ t('home.title') }} <span>{{ t('home.titleAccent') }}</span></h1>
+        <p class="shop-hero__description">{{ t('home.description') }}</p>
         <div class="shop-hero__actions">
           <router-link class="gooey-link" to="/catalogo">
             <span class="gooey-link__liquid" aria-hidden="true"><span class="gooey-link__bubble gooey-link__bubble--one"></span><span class="gooey-link__bubble gooey-link__bubble--two"></span></span>
-            <span class="gooey-link__label">Explorar mangas <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+            <span class="gooey-link__label">{{ t('home.explore') }} <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
           </router-link>
-          <a class="shop-hero__secondary" href="#como-funciona">¿Cómo funciona? <span aria-hidden="true">↓</span></a>
+          <a class="shop-hero__secondary" href="#como-funciona">{{ t('home.how') }} <span aria-hidden="true">↓</span></a>
         </div>
         <div class="shop-hero__proof" aria-label="Ventajas de MangaGo">
           <span><b aria-hidden="true">✓</b> Información por volumen</span>
@@ -39,7 +39,7 @@
             <span v-if="featuredManga.malScore" class="hero-poster__score">★ {{ featuredManga.malScore.toFixed(1) }}</span>
           </div>
           <div class="hero-poster__caption">
-            <p>Una recomendación para ti</p>
+            <p>{{ t('home.recommendation') }}</p>
             <h2>{{ featuredManga.title }}</h2>
             <span>{{ featuredManga.author }}</span>
           </div>
@@ -53,21 +53,21 @@
       <!-- Top Rated Carousel -->
       <section id="tendencias" class="mb-16 home-section">
         <div class="home-section__heading">
-          <div><p class="section-eyebrow">Favoritos de la comunidad</p><h2>En boca de todos</h2></div>
-          <p>Las historias que están conquistando a quienes leen con nosotros.</p>
+          <div><p class="section-eyebrow">{{ t('home.readers') }}</p><h2>{{ t('home.popular') }}</h2></div>
+          <p>{{ t('home.popularDescription') }}</p>
         </div>
         <MangaCarousel v-if="store.topRated.length > 0" :mangas="store.topRated" @select-manga="openMangaDetails" />
-        <div v-else-if="store.loading" class="section-loading" role="status">Buscando las historias favoritas…</div>
-        <div v-else class="section-empty">Pronto encontrarás recomendaciones aquí.</div>
+        <div v-else-if="store.loading" class="section-loading" role="status">{{ t('home.trendLoading') }}</div>
+        <div v-else class="section-empty">{{ t('home.trendEmpty') }}</div>
       </section>
 
       <!-- Recent Arrivals -->
       <section id="novedades" class="mb-16 home-section">
         <div class="home-section__heading">
-          <div><p class="section-eyebrow">Acaban de llegar</p><h2>Nuevas historias</h2></div>
-          <p>Descubre los últimos títulos que sumamos al catálogo.</p>
+          <div><p class="section-eyebrow">{{ t('home.arrivalsEyebrow') }}</p><h2>{{ t('home.recent') }}</h2></div>
+          <p>{{ t('home.latestDescription') }}</p>
         </div>
-        <div v-if="store.loading" class="section-loading" role="status">Cargando novedades…</div>
+        <div v-if="store.loading" class="section-loading" role="status">{{ t('home.arrivalsLoading') }}</div>
         <div v-else-if="store.recentArrivals.length > 0" class="arrival-grid">
           <button
             v-for="manga in store.recentArrivals" 
@@ -88,15 +88,15 @@
             <div class="arrival-card__body">
               <h3>{{ manga.title }}</h3>
               <p class="arrival-card__author">{{ manga.author }}</p>
-              <p class="arrival-card__author">Vol. {{ manga.volume }} · {{ manga.stock > 0 ? 'Disponible' : 'Sin stock' }}</p>
+              <p class="arrival-card__author">Vol. {{ manga.volume }} · {{ manga.stock > 0 ? t('home.available') : t('home.none') }}</p>
               <div class="arrival-card__prices">
-                <span>Alquiler · ${{ manga.rentalPrice }} / día</span>
-                <span>Compra · ${{ manga.price }}</span>
+                <span>{{ t('home.rentalDay') }} · ${{ manga.rentalPrice }} / day</span>
+                <span>{{ t('home.purchasePrice') }} · ${{ manga.price }}</span>
               </div>
             </div>
           </button>
         </div>
-        <div v-else class="section-empty">Estamos preparando más novedades para ti.</div>
+        <div v-else class="section-empty">{{ t('home.arrivalsEmpty') }}</div>
       </section>
 
       <!-- Rental Info Section -->
@@ -107,26 +107,26 @@
       <!-- Thematic Collections -->
       <section id="colecciones" class="mb-16 home-section">
         <div class="home-section__heading">
-          <div><p class="section-eyebrow">Encuentra tu próximo mundo</p><h2>Lee según tu estado de ánimo</h2></div>
-          <p>Una puerta de entrada para cada tipo de lector.</p>
+          <div><p class="section-eyebrow">{{ t('home.collectionsEyebrow') }}</p><h2>{{ t('home.collectionsTitle') }}</h2></div>
+          <p>{{ t('home.collectionsDescription') }}</p>
         </div>
         
         <ThematicCollection 
-          title="Empieza por aquí"
+          :title="t('home.collectionBeginner')"
           :mangas="store.collections.beginner"
           :loading="store.loading"
           @select-manga="openMangaDetails"
         />
         
         <ThematicCollection 
-          title="Del anime a las páginas"
+          :title="t('home.collectionAnime')"
           :mangas="store.collections.animeAdaptations"
           :loading="store.loading"
           @select-manga="openMangaDetails"
         />
         
         <ThematicCollection 
-          title="Misterio para leer de noche"
+          :title="t('home.collectionHorror')"
           :mangas="store.collections.horror"
           :loading="store.loading"
           @select-manga="openMangaDetails"
@@ -136,10 +136,10 @@
       <!-- Author Collections -->
       <section class="mb-16 home-section">
         <div class="home-section__heading">
-          <div><p class="section-eyebrow">Quienes dan vida a cada página</p><h2>Autores que dejan huella</h2></div>
-          <p>Conoce a los creadores que más está leyendo la comunidad.</p>
+          <div><p class="section-eyebrow">{{ t('home.authorEyebrow') }}</p><h2>{{ t('home.authorsTitle') }}</h2></div>
+          <p>{{ t('home.authorsDescription') }}</p>
         </div>
-        <div v-if="store.loading" class="section-loading" role="status">Cargando autores…</div>
+        <div v-if="store.loading" class="section-loading" role="status">{{ t('home.authorsLoading') }}</div>
         <div v-else-if="topAuthors.length > 0" class="author-grid">
           <div 
             v-for="author in topAuthors" 
@@ -148,20 +148,20 @@
           >
             <div class="author-card__icon" aria-hidden="true">✳</div>
             <h3>{{ author._id }}</h3>
-            <p>{{ author.count }} {{ author.count === 1 ? 'título' : 'títulos' }}<span v-if="author.avgScore"> · ★ {{ author.avgScore.toFixed(1) }}</span></p>
+            <p>{{ author.count }} {{ author.count === 1 ? t('home.titleSingular') : t('home.volumes') }}<span v-if="author.avgScore"> · ★ {{ author.avgScore.toFixed(1) }}</span></p>
           </div>
         </div>
-        <div v-else class="section-empty">Los autores más leídos aparecerán aquí.</div>
+        <div v-else class="section-empty">{{ t('home.authorsEmpty') }}</div>
       </section>
 
       <!-- Community Rankings -->
       <section class="community-section mb-16">
-        <p class="section-eyebrow">Lecturas que nos unen</p>
-        <h2 class="community-section__title">Lo que la comunidad está leyendo</h2>
+        <p class="section-eyebrow">{{ t('home.reading') }}</p>
+        <h2 class="community-section__title">{{ t('home.community') }}</h2>
         <div class="community-grid">
           <!-- Most Read This Week -->
           <div class="community-card">
-            <h3>📖 Más leídos esta semana</h3>
+            <h3>{{ t('home.week') }}</h3>
             <div v-if="mostReadWeek.length > 0" class="community-list">
               <button
                 v-for="(manga, index) in mostReadWeek" 
@@ -179,12 +179,12 @@
                 <span v-if="manga.malScore" class="community-list__value">★ {{ manga.malScore.toFixed(1) }}</span>
               </button>
             </div>
-            <p v-else class="community-empty">Aún no hay lecturas para mostrar.</p>
+            <p v-else class="community-empty">{{ t('home.weekEmpty') }}</p>
           </div>
 
           <!-- Most Rented Today -->
           <div class="community-card">
-            <h3>🔥 Más alquilados hoy</h3>
+            <h3>{{ t('home.today') }}</h3>
             <div v-if="mostRentedToday.length > 0" class="community-list">
               <button
                 v-for="(manga, index) in mostRentedToday" 
@@ -202,7 +202,7 @@
                 <span class="community-list__value">${{ manga.rentalPrice }}/día</span>
               </button>
             </div>
-            <p v-else class="community-empty">Los alquileres de hoy aparecerán aquí.</p>
+            <p v-else class="community-empty">{{ t('home.todayEmpty') }}</p>
           </div>
         </div>
       </section>
@@ -228,6 +228,7 @@ import ShopHeader from '../components/ShopHeader.vue';
 import ShopMangaDialog from '../components/ShopMangaDialog.vue';
 import api from '../services/api';
 import { useCartStore, type CartKind } from '../stores/cartStore';
+import { t } from '../i18n';
 
 const store = useShopStore();
 const selectedManga = ref<Manga | null>(null);

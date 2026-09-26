@@ -5,39 +5,39 @@
     <main>
       <section class="faq-hero" aria-labelledby="faq-title">
         <div class="faq-hero__copy">
-          <p class="faq-eyebrow"><span aria-hidden="true">✳</span> Centro de ayuda</p>
-          <h1 id="faq-title">Respuestas para<br><em>seguir leyendo.</em></h1>
+          <p class="faq-eyebrow"><span aria-hidden="true">✳</span> {{ t('faq.center') }}</p>
+          <h1 id="faq-title">{{ t('faq.title') }}</h1>
           <p class="faq-hero__intro">
-            Entiende qué ofrece el catálogo y cómo funcionan las compras y alquileres en modo de prueba.
+            {{ t('faq.intro') }}
           </p>
-          <a class="faq-hero__link" href="#preguntas">Ver preguntas frecuentes <span aria-hidden="true">↓</span></a>
+          <a class="faq-hero__link" href="#preguntas">{{ t('faq.view') }} <span aria-hidden="true">↓</span></a>
         </div>
 
         <aside class="faq-shortcuts" aria-label="Accesos a información de la tienda">
           <div class="faq-shortcuts__mark" aria-hidden="true">?</div>
-          <p class="faq-shortcuts__eyebrow">Información útil</p>
-          <h2>¿Buscas todos los detalles?</h2>
-          <p>Revisa lo que puede hacer el sistema en esta versión.</p>
-          <router-link to="/rental-policies">Políticas de alquiler <span aria-hidden="true">↗</span></router-link>
-          <router-link to="/return-policy">Devoluciones y reembolsos <span aria-hidden="true">↗</span></router-link>
-          <router-link to="/terms">Términos y condiciones <span aria-hidden="true">↗</span></router-link>
+          <p class="faq-shortcuts__eyebrow">{{ t('faq.useful') }}</p>
+          <h2>{{ t('faq.details') }}</h2>
+          <p>{{ t('faq.version') }}</p>
+          <router-link to="/rental-policies">{{ t('faq.rentalPolicies') }} <span aria-hidden="true">↗</span></router-link>
+          <router-link to="/return-policy">{{ t('faq.returns') }} <span aria-hidden="true">↗</span></router-link>
+          <router-link to="/terms">{{ t('faq.terms') }} <span aria-hidden="true">↗</span></router-link>
         </aside>
       </section>
 
       <section id="preguntas" class="faq-main" aria-labelledby="faq-list-title">
         <div class="faq-main__heading">
           <div>
-            <p class="faq-eyebrow">A un paso de tu próxima historia</p>
-            <h2 id="faq-list-title">Preguntas frecuentes</h2>
+            <p class="faq-eyebrow">{{ t('faq.next') }}</p>
+            <h2 id="faq-list-title">{{ t('faq.faqs') }}</h2>
           </div>
-          <p>Busca un tema o abre una pregunta para ver su respuesta.</p>
+          <p>{{ t('faq.searchHint') }}</p>
         </div>
 
         <label class="faq-search">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.7"/><path d="m16 16 4.2 4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-          <span class="faq-search__sr-only">Buscar en preguntas frecuentes</span>
-          <input v-model="searchQuery" type="search" placeholder="Prueba: alquiler, pago o devolución" autocomplete="off">
-          <span v-if="searchQuery" class="faq-search__count" aria-live="polite">{{ filteredFaqs.length }} {{ filteredFaqs.length === 1 ? 'resultado' : 'resultados' }}</span>
+          <span class="faq-search__sr-only">{{ t('faq.search') }}</span>
+          <input v-model="searchQuery" type="search" :placeholder="t('faq.placeholder')" autocomplete="off">
+          <span v-if="searchQuery" class="faq-search__count" aria-live="polite">{{ filteredFaqs.length }} {{ t(filteredFaqs.length === 1 ? 'faq.one' : 'faq.many') }}</span>
         </label>
 
         <div v-if="filteredFaqs.length" class="faq-list">
@@ -80,9 +80,9 @@
 
         <div v-else class="faq-empty" role="status">
           <span aria-hidden="true">⌕</span>
-          <h3>No encontramos esa pregunta</h3>
-          <p>Prueba con otra palabra, como «alquiler», «entrega» o «pago».</p>
-          <button type="button" @click="searchQuery = ''">Borrar búsqueda</button>
+          <h3>{{ t('faq.notFound') }}</h3>
+          <p>{{ t('faq.tryAgain') }}</p>
+          <button type="button" @click="searchQuery = ''">{{ t('faq.clear') }}</button>
         </div>
       </section>
     </main>
@@ -95,64 +95,65 @@
 import { computed, ref } from 'vue';
 import ShopFooter from '../components/ShopFooter.vue';
 import ShopHeader from '../components/ShopHeader.vue';
+import { t } from '../i18n';
 
 const searchQuery = ref('');
 const openFaqId = ref<string | null>(null);
 
-const faqs = [
+const faqs = computed(() => [
   {
     id: 'comprar-alquilar',
-    question: '¿Puedo comprar o alquilar desde la tienda?',
-    answer: 'Puedes combinar compras y alquileres en un mismo carrito y continuar a Stripe Checkout en modo de prueba. Al iniciar el pago, el sistema reserva stock temporalmente; una operación aprobada queda en Pedidos y los alquileres aparecen en el panel.',
-    links: [{ label: 'Estado de los alquileres', to: '/rental-policies' }]
+    question: t('faq.q1'),
+    answer: t('faq.a1'),
+    links: [{ label: t('faq.linkRental'), to: '/rental-policies' }]
   },
   {
     id: 'precios',
-    question: '¿Qué significa el precio de alquiler?',
-    answer: 'El catálogo muestra la tarifa diaria configurada para cada volumen. El panel interno calcula el costo de un alquiler según los días registrados; desde esta tienda todavía no se puede iniciar ese proceso.',
-    links: [{ label: 'Cómo funciona el alquiler', to: '/rental-policies' }]
+    question: t('faq.q2'),
+    answer: t('faq.a2'),
+    links: [{ label: t('faq.linkHowRental'), to: '/rental-policies' }]
   },
   {
     id: 'stock',
-    question: '¿Cómo consulto si hay ejemplares disponibles?',
-    answer: 'Abre la ficha de un manga desde una tarjeta del catálogo para ver el stock que figura actualmente en el sistema. Esa cantidad es informativa y no reserva un ejemplar.',
+    question: t('faq.q3'),
+    answer: t('faq.a3'),
     links: []
   },
   {
     id: 'devoluciones',
-    question: '¿Cómo se registra una devolución?',
-    answer: 'Actualmente el equipo marca la devolución desde el panel administrativo. El sitio público no programa recogidas ni ofrece un historial personal de alquileres.',
-    links: [{ label: 'Estado de las devoluciones', to: '/return-policy' }]
+    question: t('faq.q4'),
+    answer: t('faq.a4'),
+    links: [{ label: t('faq.linkReturns'), to: '/return-policy' }]
   },
   {
     id: 'condiciones',
-    question: '¿Cuáles son los plazos y cargos de alquiler?',
-    answer: 'Los períodos fijos, depósitos, recargos por retraso, descuentos y condiciones de entrega todavía no están confirmados en esta versión. No se anuncian como condiciones del servicio hasta que el negocio los defina.',
-    links: [{ label: 'Ver información del sistema', to: '/rental-policies' }]
+    question: t('faq.q5'),
+    answer: t('faq.a5'),
+    links: [{ label: t('faq.linkSystem'), to: '/rental-policies' }]
   },
   {
     id: 'pagos',
-    question: '¿Qué medios de pago puedo usar?',
-    answer: 'La tienda usa Stripe Checkout en modo de prueba. Se necesita configurar las claves de prueba en el servidor y no se procesan cobros reales.',
-    links: [{ label: 'Leer términos del proyecto', to: '/terms' }]
+    question: t('faq.q6'),
+    answer: t('faq.a6'),
+    links: [{ label: t('faq.linkTerms'), to: '/terms' }]
   },
   {
     id: 'politicas',
-    question: '¿Dónde encuentro todas las condiciones?',
-    answer: 'Aquí tienes las páginas con el detalle de cada servicio. Si una condición no está clara, revisa la información correspondiente al producto antes de continuar.',
+    question: t('faq.q7'),
+    answer: t('faq.a7'),
     links: [
-      { label: 'Alquileres', to: '/rental-policies' },
-      { label: 'Devoluciones', to: '/return-policy' },
-      { label: 'Términos', to: '/terms' }
+      { label: t('faq.linkRentals'), to: '/rental-policies' },
+      { label: t('faq.linkReturn'), to: '/return-policy' },
+      { label: t('faq.linkTermsShort'), to: '/terms' }
     ]
   }
-];
+]);
 
 const filteredFaqs = computed(() => {
   const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
   const query = normalize(searchQuery.value.trim());
-  if (!query) return faqs;
-  return faqs.filter((faq) => normalize(`${faq.question} ${faq.answer}`).includes(query));
+  if (!query) return faqs.value;
+  return faqs.value.filter((faq) => normalize(`${faq.question} ${faq.answer}`).includes(query));
 });
 
 const toggleFaq = (id: string) => {
