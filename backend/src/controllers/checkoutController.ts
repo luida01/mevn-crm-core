@@ -15,7 +15,7 @@ type CartInput = { mangaId: string; kind: OrderKind; quantity: number; days?: nu
 const stripeSecret = () => process.env.STRIPE_SECRET_KEY || '';
 const getStripe = (): Stripe | null => {
     const key = stripeSecret();
-    return key.startsWith('sk_test_') ? new Stripe(key) : null;
+    return key.startsWith('sk_test_') || key.startsWith('rk_test_') ? new Stripe(key) : null;
 };
 const currency = () => (process.env.STRIPE_CURRENCY || 'usd').toLowerCase();
 // Stripe requires Checkout sessions to expire at least 30 minutes after creation;
@@ -100,7 +100,7 @@ const createPaidOrderEffects = async (order: IOrder, session: Stripe.Checkout.Se
 export const createCheckoutSession = async (req: Request, res: Response) => {
     const stripe = getStripe();
     if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
-        res.status(503).json({ message: 'La pasarela de prueba no está configurada. Añade STRIPE_SECRET_KEY (sk_test_) y STRIPE_WEBHOOK_SECRET.' }); return;
+        res.status(503).json({ message: 'La pasarela de prueba no está configurada. Añade STRIPE_SECRET_KEY (sk_test_ o rk_test_) y STRIPE_WEBHOOK_SECRET.' }); return;
     }
     const idempotencyKey = req.get('Idempotency-Key');
     if (!idempotencyKey || idempotencyKey.length > 120 || !/^[\w.:=-]+$/.test(idempotencyKey)) {

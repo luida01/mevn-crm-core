@@ -219,12 +219,12 @@ The migration groups records by normalized title, records differing authors as a
 
 ### Stripe test checkout setup
 
-1. Add Stripe **test mode** credentials to the ignored root `.env`: `STRIPE_SECRET_KEY=sk_test_...` and `STRIPE_WEBHOOK_SECRET=whsec_...`. Set `STRIPE_CURRENCY` (defaults to `usd`) and `SHOP_URL` if the shop is hosted at another local URL.
+1. Add Stripe **test mode** credentials to the ignored root `.env`: `STRIPE_SECRET_KEY=rk_test_...` (recommended restricted key) or `sk_test_...`, and `STRIPE_WEBHOOK_SECRET=whsec_...`. Set `STRIPE_CURRENCY` (defaults to `usd`) and `SHOP_URL` if the shop is hosted at another local URL.
 2. Install the official Stripe CLI separately and run `stripe listen --forward-to localhost:5000/api/payments/webhook`; put the displayed `whsec_...` in `.env` and restart the backend.
 3. Rebuild/restart Compose with `docker compose up -d --build backend frontend frontend-admin` and test using Stripe's documented test card `4242 4242 4242 4242` with any future expiry and any CVC.
 4. Paid orders appear under Admin → Pedidos. Paid rental lines also appear under Alquileres. Expired sessions release their stock reservation; the printed receipt is an internal, non-fiscal record.
 
-Checkout is deliberately restricted to `sk_test_` keys in this implementation. Stripe account onboarding and live payment availability depend on Stripe-supported business locations and are not enabled here.
+Checkout accepts only Stripe test keys (`rk_test_` restricted keys or `sk_test_` secret keys). Prefer a restricted key with only the Checkout Sessions permission. Stripe account onboarding and live payment availability depend on Stripe-supported business locations and are not enabled here.
 
 ### Customer Management
 - `GET /api/customers` - List all customers (admin token required)
