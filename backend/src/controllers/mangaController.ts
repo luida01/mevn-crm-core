@@ -1,4 +1,6 @@
 import { Request, Response } from 'express';
+import { processStockAlertsSafely } from '../services/stockAlerts';
+import StockAlert from '../models/StockAlert';
 import mongoose from 'mongoose';
 import Manga from '../models/Manga';
 import MangaSeries, { IMangaSeries } from '../models/MangaSeries';
@@ -159,6 +161,7 @@ export const addMangaStock = async (req: Request, res: Response) => {
         await Manga.findByIdAndUpdate(req.params.id, { $inc: { stock: quantity } }, { new: true, runValidators: true });
         const manga = await Manga.findById(req.params.id).populate('series');
         if (!manga) { res.status(404).json({ message: 'Manga not found' }); return; }
+        await processStockAlertsSafely(manga.id);
         res.json(serializeManga(manga));
     } catch (error: unknown) { console.error(error); res.status(500).json({ message: 'No se pudo añadir stock.' }); }
 };
@@ -268,6 +271,7 @@ export const updateManga = async (req: Request, res: Response) => {
         if (seriesId.toString() !== currentSeries._id.toString()) update.series = seriesId;
         const updatedManga = await Manga.findByIdAndUpdate(req.params.id, { $set: update }, { new: true, runValidators: true }).populate('series');
         if (!updatedManga) return res.status(404).json({ message: 'Manga not found' });
+        if (updatedManga.stock > 0) await processStockAlertsSafely(updatedManga.id);
         res.json(serializeManga(updatedManga));
     } catch (error: unknown) {
         if (error instanceof mongoose.Error.ValidationError) {
@@ -298,6 +302,7 @@ export const deleteManga = async (req: Request, res: Response) => {
             return;
         }
         if (!deletedManga) return res.status(404).json({ message: 'Manga not found' });
+        await StockAlert.deleteMany({ manga: deletedManga._id });
         res.json({ message: 'Manga deleted successfully' });
     } catch (error: unknown) {
         console.error('Error deleting manga:', error);

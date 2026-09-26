@@ -71,3 +71,38 @@ test('admin can authenticate and open the orders workspace', async ({ page }) =>
   await expect(page.getByRole('heading', { name: 'Pedidos' })).toBeVisible();
   await expect(page.getByText('No hay pedidos para estos filtros.')).toBeVisible();
 });
+
+test('out-of-stock volume offers an email alert and requires confirmation from the email', async ({ page }) => {
+  const login = await apiContext.post(`${apiBase}/auth/login`, { data: { username, password } });
+  const { token } = await login.json() as { token: string };
+  expect((await apiContext.put(`${apiBase}/mangas/${mangaId}`, { headers: { Authorization: `Bearer ${token}` }, data: { stock: 0 } })).ok()).toBeTruthy();
+  let submitted = false;
+  await page.route('**/api/stock-alerts', async route => {
+    expect(route.request().postDataJSON()).toEqual({ mangaId, email: 'reader@example.test', locale: 'es', consent: true });
+    submitted = true;
+    await route.fulfill({ status: 202, contentType: 'application/json', body: '{}' });
+  });
+  await page.goto(`/catalogo?q=${encodeURIComponent(mangaTitle)}`);
+  await page.getByRole('button', { name: new RegExp(mangaTitle) }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('button', { name: 'Añadir compra' })).toBeDisabled();
+  await expect(dialog.getByRole('heading', { name: 'Avísame cuando haya stock' })).toBeVisible();
+  await dialog.getByLabel('Tu correo electrónico').fill('reader@example.test');
+  await dialog.getByRole('checkbox').check();
+  await dialog.getByRole('button', { name: 'Quiero recibir el aviso' }).click();
+  await expect(dialog.getByRole('status')).toContainText('Solicitud recibida');
+  expect(submitted).toBeTruthy();
+
+  let activated = false;
+  await page.route('**/api/stock-alerts/confirm', async route => {
+    activated = true;
+    expect(route.request().postDataJSON()).toEqual({ token: 'test-token' });
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' });
+  });
+  await page.goto('/avisos-stock#action=confirm&token=test-token');
+  await expect(page.getByRole('button', { name: 'Activar aviso' })).toBeVisible();
+  expect(activated).toBeFalsy();
+  await page.getByRole('button', { name: 'Activar aviso' }).click();
+  await expect(page.getByRole('status')).toContainText('Aviso activado');
+  expect(activated).toBeTruthy();
+});

@@ -13,6 +13,7 @@ import settingsRoutes from './routes/settingsRoutes';
 import checkoutRoutes from './routes/checkoutRoutes';
 import paymentWebhookRoutes from './routes/paymentWebhookRoutes';
 import orderRoutes from './routes/orderRoutes';
+import stockAlertRoutes from './routes/stockAlertRoutes';
 
 const app = express();
 const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:5174')
@@ -44,6 +45,7 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/mangas', mangaRoutes);
 app.use('/api/rentals', rentalRoutes);
 app.use('/api/shop', shopRoutes);
+app.use('/api/stock-alerts', stockAlertRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/checkout', checkoutRoutes);

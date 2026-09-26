@@ -7,8 +7,10 @@ import TermsView from '../views/TermsView.vue';
 import CatalogView from '../views/CatalogView.vue';
 import CartView from '../views/CartView.vue';
 import CheckoutConfirmationView from '../views/CheckoutConfirmationView.vue';
+import StockAlertView from '../views/StockAlertView.vue';
 
 const routes = [
+    { path: '/avisos-stock', name: 'stock-alert', component: StockAlertView },
     {
         path: '/',
         name: 'shop',

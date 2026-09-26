@@ -10,7 +10,7 @@ interface CatalogFilters { titles: string[]; authors: string[]; volumes: number[
 const emit = defineEmits<{ selectManga: [manga: Manga] }>();
 const catalog = ref<Catalog>({ items: [], total: 0, page: 1, pages: 0 });
 const filters = ref<CatalogFilters>({ titles: [], authors: [], volumes: [] });
-const search = ref('');
+const search = ref(new URLSearchParams(window.location.search).get('q')?.slice(0, 100) || '');
 const title = ref('');
 const volume = ref('');
 const author = ref('');

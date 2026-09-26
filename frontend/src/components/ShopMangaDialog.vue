@@ -32,6 +32,7 @@
             <button type="button" class="shop-manga-dialog__rent" :disabled="manga.stock < 1 || manga.rentalPrice <= 0" @click="emit('addToCart', 'rental')">{{ t('details.addRental') }}</button>
             <button type="button" class="shop-manga-dialog__buy" :disabled="manga.stock < 1 || manga.price <= 0" @click="emit('addToCart', 'purchase')">{{ t('details.addPurchase') }}</button>
           </div>
+          <StockAlertForm v-if="manga.stock < 1 && manga._id" :key="manga._id" :manga-id="manga._id" />
           <button class="shop-manga-dialog__return" type="button" @click="close">{{ t('details.back') }} <span aria-hidden="true">↗</span></button>
         </div>
       </div>
@@ -43,6 +44,7 @@
 import { onMounted, ref } from 'vue';
 import type { Manga } from '../types/Manga';
 import { t } from '../i18n';
+import StockAlertForm from './StockAlertForm.vue';
 
 const props = defineProps<{ manga: Manga }>();
 const emit = defineEmits<{ close: []; addToCart: [kind: 'rental' | 'purchase'] }>();

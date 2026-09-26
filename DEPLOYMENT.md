@@ -16,6 +16,8 @@ The frontend `vercel.json` files provide SPA fallback routing for Vue Router URL
 
 ## Environment variables
 
+For stock notification emails, also configure SMTP and a scheduled queue worker as described in [STOCK_ALERTS.md](./STOCK_ALERTS.md). Local Docker captures messages in Mailpit; it does not deliver them to real inboxes.
+
 Set these only in the API project's Vercel environment settings. Use separate strong production secrets; never commit `.env` files.
 
 | Variable | Value |

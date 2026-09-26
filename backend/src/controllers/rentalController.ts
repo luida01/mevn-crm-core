@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { processStockAlertsSafely } from '../services/stockAlerts';
 import mongoose from 'mongoose';
 import Rental from '../models/Rental';
 import Customer from '../models/Customer';
@@ -153,6 +154,7 @@ export const returnRental = async (req: Request, res: Response) => {
             return;
         }
 
+        await processStockAlertsSafely(rental.manga.toString());
         res.json(rental);
     } catch (error: unknown) {
         console.error('Error returning rental:', error);

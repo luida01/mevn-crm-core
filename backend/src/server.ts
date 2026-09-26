@@ -2,6 +2,7 @@ import 'dotenv/config';
 import mongoose from 'mongoose';
 import app from './app';
 import { expireOverdueCheckouts } from './controllers/checkoutController';
+import { processStockAlertsSafely } from './services/stockAlerts';
 
 const PORT = Number.parseInt(process.env.PORT || '5000', 10);
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mevn-crm';
@@ -22,12 +23,15 @@ const startServer = async (): Promise<void> => {
         void expireOverdueCheckouts().catch((error: unknown) => console.error('Checkout reservation cleanup failed:', error));
     }, 60_000);
     reservationSweep.unref();
+    const alertSweep = setInterval(() => { void processStockAlertsSafely(); }, 30_000);
+    alertSweep.unref();
     void expireOverdueCheckouts().catch((error: unknown) => console.error('Checkout reservation cleanup failed:', error));
 
     const server = app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
     const shutdown = (): void => {
         console.log('Shutdown signal received; closing HTTP server');
         clearInterval(reservationSweep);
+        clearInterval(alertSweep);
         server.close(() => {
             void mongoose.disconnect().then(() => console.log('MongoDB connection closed')).catch((error: unknown) => {
                 console.error('Error closing MongoDB connection:', error);
