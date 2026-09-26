@@ -1,268 +1,192 @@
-# 📚 MangaGo - Manga Store & Rental Platform
+# MangaGo
 
-A modern, full-stack MEVN application for managing a manga store inventory, rentals, and sales. Built with a premium UI, dual-frontend architecture, and powerful external API integrations.
+Plataforma para explorar un catálogo de manga por volumen, gestionar una tienda y organizar alquileres desde un panel administrativo.
 
-![Vue.js](https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vuedotjs&logoColor=4FC08D)
-![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+[![Vue 3](https://img.shields.io/badge/Vue-3-42b883?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-24-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47a248?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![Vercel](https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel&logoColor=white)](https://vercel.com/)
 
-## 🌟 Overview
+## Aplicación en producción
 
-This project is a **comprehensive manga management platform** with a **dual-frontend architecture**:
-- 🏢 **Admin Panel** (`frontend-admin`): Complete CRM for inventory, customers, and rental management
-- 🛍️ **Customer Shop** (`frontend`): E-commerce portal with curated collections and premium UI
-- 🔗 **External API Integration**: MyAnimeList (Jikan) for metadata and MangaDex for high-quality covers
-- 📦 **Volume-Level Tracking**: Individual volume management with specific covers and stock control
+| Módulo | Enlace |
+| --- | --- |
+| Tienda | [mangago-shop.vercel.app](https://mangago-shop.vercel.app) |
+| Panel administrativo | [mangago-admin.vercel.app](https://mangago-admin.vercel.app) |
+| API | [mangago-api.vercel.app](https://mangago-api.vercel.app) |
+| Estado de la API y MongoDB | [health/ready](https://mangago-api.vercel.app/health/ready) |
+| Estado del checkout de prueba | [checkout/config](https://mangago-api.vercel.app/api/checkout/config) |
 
-## 🏗️ Project Structure
+El panel administrativo no permite crear una cuenta pública. Para solicitar acceso, escribe a [luisdanielsantanamercado@gmail.com](mailto:luisdanielsantanamercado@gmail.com). Las credenciales se entregan de forma privada; no están incluidas en este repositorio.
 
+## Qué incluye
+
+### Tienda
+
+- Catálogo público con búsqueda, filtros por autor, título, volumen y disponibilidad.
+- Inventario y precios independientes para cada volumen.
+- Portadas específicas por volumen. La API las obtiene a través de un proxy con caché temporal y muestra una alternativa cuando la portada no está disponible.
+- Colecciones temáticas, novedades, autores destacados y selecciones de lectores.
+- Carrito combinado para compras y alquileres.
+- Checkout de Stripe en **modo de prueba**. El backend valida precios y disponibilidad, reserva unidades temporalmente y procesa los eventos firmados del webhook.
+
+### Panel administrativo
+
+- Administración de mangas, volúmenes, precios y existencias.
+- Registro de clientes y seguimiento de alquileres, vencimientos, devoluciones y pagos.
+- Pedidos de la tienda, estado del pago y comprobantes internos imprimibles.
+- Configuración de los datos del negocio y de los días sugeridos para alquileres.
+
+Los comprobantes son registros internos; no son facturas fiscales. El checkout está en modo de prueba y no procesa cobros reales.
+
+## Arquitectura
+
+| Aplicación | Carpeta | Tecnologías |
+| --- | --- | --- |
+| API REST | `backend` | Node.js, Express, TypeScript, Mongoose |
+| Tienda | `frontend` | Vue 3, Vite, Pinia, Vue Router |
+| Panel administrativo | `frontend-admin` | Vue 3, Vite, Pinia, Vue Router |
+| Base de datos | — | MongoDB |
+
+La información editorial de una serie se guarda una sola vez en `MangaSeries`. Cada documento `Manga` representa un volumen con su propio número, portada, precio y stock. Las ventas y alquileres actualizan las unidades disponibles; las reservas de checkout vencidas liberan el stock.
+
+La tienda obtiene metadatos editoriales de MyAnimeList mediante Jikan y portadas de MangaDex. Las portadas se sirven desde la API del proyecto.
+
+## Empezar en local
+
+### Requisitos
+
+- Node.js y npm.
+- Docker Compose, o una instancia de MongoDB local accesible en el puerto `27017`.
+
+### Opción recomendada: Docker Compose
+
+Desde la raíz del repositorio:
+
+```powershell
+Copy-Item .env.example .env
 ```
-mevn-crm-manga/
-├── backend/           # Node.js + Express API
-├── frontend/          # Customer-facing shop (port 5173)
-├── frontend-admin/    # Admin dashboard (port 5174)
-├── docs/              # Documentation
-└── docker-compose.yml # Container orchestration
+
+Edita `.env` y reemplaza los valores de ejemplo de `JWT_SECRET` y `ADMIN_PASSWORD` por valores propios. Luego inicia los servicios:
+
+```powershell
+docker compose up --build
 ```
 
-## 📋 Key Features
+Al iniciar:
 
-### 🎯 Core Functionality
+- Tienda: [http://localhost:5173](http://localhost:5173)
+- Panel: [http://localhost:5174/login](http://localhost:5174/login)
+- API: [http://localhost:5000](http://localhost:5000)
+- Bandeja local de correo (Mailpit): [http://localhost:8025](http://localhost:8025)
 
-✅ **Hybrid Inventory System**
-- Import metadata from MyAnimeList (Jikan API)
-- Fetch high-quality volume-specific covers from MangaDex
-- Intelligent search with spin-off filtering
+Docker Compose inicia MongoDB, la API y ambas aplicaciones web. Los datos de MongoDB se conservan en el volumen `mongo-data`. Mailpit captura los correos localmente y no los envía a destinatarios externos.
 
-✅ **Dual-Frontend Architecture**
-- **Admin Panel** (`frontend-admin`): Odoo-style CRM dashboard for managing inventory, customers, and rentals
-- **Shop Portal** (`frontend`): Customer-facing e-commerce with curated collections, policies, and FAQ
+### Ejecución sin Docker
 
-✅ **Volume Management**
-- Track individual manga volumes with specific covers
-- Stock control per volume
-- Differentiated pricing (sale vs rental)
+Inicia MongoDB en el puerto `27017` y configura `backend/.env` con, al menos:
 
-✅ **Smart Collections**
-- **Trending Now**: Top-rated manga (MAL score ≥ 7.5)
-- **Recent Arrivals**: Last 6 items added to inventory
-- **Thematic Collections**: Beginner-friendly, Anime Adaptations, Horror
-- **Author Collections**: Grouped by popular authors
-- **Community Reads**: Most read this week, most rented today
+```dotenv
+PORT=5000
+MONGODB_URI=mongodb://localhost:27017/mevn-crm
+JWT_SECRET=un-secreto-aleatorio-de-al-menos-32-caracteres
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=una-clave-de-al-menos-12-caracteres
+CORS_ORIGINS=http://localhost:5173,http://localhost:5174
+```
 
-✅ **Customer & Rental Management**
-- Complete customer profiles with address and contact info
-- Rental tracking with status (ACTIVE, RETURNED, LATE)
-- Due date management and payment tracking
-
-✅ **Premium UI**
-- Responsive grid layout with TailwindCSS
-- Immersive details modal with synopsis and genres
-- Dynamic status indicators (In Stock / Out of Stock)
-- Interactive carousels and collections
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js & npm
-- Docker & Docker Compose (optional)
-- MongoDB (local or Atlas)
-
-### Series and volume data model
-
-Series metadata (title, author, genres, publication details and external IDs) is stored once in `MangaSeries`. Each `Manga` document represents a physical volume and keeps its volume number, ISBN, individual cover, prices and stock. Existing flat API payloads remain compatible with both frontends.
-
-Before upgrading an existing database to this version, run the idempotent migration with the backend environment configured:
+En tres terminales, instala dependencias e inicia cada módulo:
 
 ```bash
 cd backend
-npm run migrate:series
+npm install
+npm run dev
 ```
 
-The migration groups records by normalized title, records differing authors as aliases, and leaves volume numbers, covers, prices and stock on the original volume documents.
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-### Installation
+```bash
+cd frontend-admin
+npm install
+npm run dev
+```
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/luida01/mevn-crm-core.git
-   cd mevn-crm-core
-   ```
+La tienda y el panel usan por defecto `http://localhost:5000/api`. Si la API está en otra dirección, configura `VITE_API_URL` en el módulo correspondiente. Para que el enlace del panel vuelva a la tienda, configura `VITE_SHOP_URL` en `frontend-admin`.
 
-2. **Backend Setup**
-   ```bash
-   cd backend
-   npm install
-   # Create .env with: MONGODB_URI, JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD, CORS_ORIGINS
-   npm run dev
-   ```
+## Variables de entorno
 
-3. **Frontend Shop Setup**
-   ```bash
-   cd frontend
-   npm install
-   npm run dev  # Runs on port 5173
-   ```
+No agregues archivos `.env` ni secretos al control de versiones. Para producción, las variables se configuran en Vercel y las credenciales de base de datos en el proveedor de MongoDB.
 
-4. **Frontend Admin Setup**
-   ```bash
-   cd frontend-admin
-   npm install
-   npm run dev  # Runs on port 5174
-   ```
-   Then open `http://localhost:5174/login` and authenticate with `ADMIN_USERNAME` / `ADMIN_PASSWORD`.
+| Variable | Uso |
+| --- | --- |
+| `MONGODB_URI` | Conexión a MongoDB. |
+| `JWT_SECRET` | Firma de sesiones administrativas; usa al menos 32 caracteres aleatorios. |
+| `ADMIN_USERNAME`, `ADMIN_PASSWORD` | Credenciales del panel; usa una clave única de al menos 12 caracteres. |
+| `CORS_ORIGINS` | Orígenes exactos permitidos para la tienda y el panel. |
+| `VITE_API_URL` | URL pública de la API para los frontends, incluyendo `/api`. |
+| `VITE_SHOP_URL` | URL de la tienda que enlaza el panel administrativo. |
+| `SHOP_URL` | URL de la tienda usada en enlaces de checkout y avisos. |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Claves de Stripe de prueba y secreto de firma del webhook. |
+| `STRIPE_CURRENCY` | Moneda del checkout; por defecto `usd`. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | Envío de comprobantes y avisos de stock por correo. |
+| `CRON_SECRET` | Protección de la ruta del proceso programado de avisos de stock. |
 
-5. **Docker (All Services)**
-   ```bash
-   # Copy .env.example to .env, then set a random JWT_SECRET (32+ characters)
-   # and an ADMIN_PASSWORD (12+ characters).
-   docker compose up --build
-   ```
-   Open `http://localhost:5173` for the shop and `http://localhost:5174/login` for admin. MongoDB data persists in the `mongo-data` volume. The optional seed is safe to rerun and only inserts missing records:
-   ```bash
-   docker compose exec backend npm run seed
-   ```
+La [guía de despliegue](./DEPLOYMENT.md) documenta la configuración de los tres proyectos de Vercel, CORS, MongoDB y tareas de correo. El checkout solo acepta claves de Stripe de prueba (`sk_test_` o `rk_test_`).
 
-## 🛠️ Tech Stack
+## API
 
-### Admin workflows and checks
+La API usa rutas públicas para la tienda y rutas administrativas protegidas con JWT.
 
-- Pipeline groups rentals into active, overdue, returned/unpaid and completed. Return and payment actions drive those stages.
-- Invoicing records payments and issues one printable internal receipt per rental. Receipts preserve issuer, customer, manga and amount snapshots; payment status stays linked to the rental. These are not fiscal invoices and do not process online payments.
-- The mixed shop cart checks out purchases and rentals together through Stripe Checkout in test mode. The backend calculates prices from inventory, reserves units atomically for 30 minutes, receives signed Stripe webhooks, creates rentals after paid checkouts, and stores an internal printable order receipt. Stripe keys are optional for running the app; checkout stays disabled until valid test keys are configured.
-- Settings stores business contact details and suggested rental days. Updates affect future receipts and new rental forms.
-- The public catalog includes every volume, even when stock is zero; search and availability filters are available. Remote imports start with zero stock and zero prices until staff updates them.
-- With MongoDB running locally, run `npm run check:workflows` from `backend`. It builds the API, starts an isolated instance, checks customer/inventory/rental/payment/receipt/settings flows and deletes its own randomly named test database. `TEST_MONGODB_URI` optionally overrides the MongoDB server; no application records are used.
-- `npm run test:e2e` from `frontend` runs Playwright browser flows for catalog search, mixed purchase/rental carts, the configured payment screen, admin login and the Orders page. It starts isolated local services and uses `E2E_MONGODB_URI` (defaults to the dedicated `mangago_e2e` database); install Chromium once with `npx playwright install chromium`.
-- GitHub Actions runs all three production builds, the isolated API workflow (including signed test-mode Stripe webhook retries and reservation release), and the Playwright flows on pushes and pull requests to `main`.
+| Ruta | Descripción |
+| --- | --- |
+| `GET /health/live` | Comprueba que el proceso de API responde. |
+| `GET /health/ready` | Comprueba que API y MongoDB están disponibles. |
+| `GET /api/shop/catalog` | Catálogo público paginado con búsqueda y filtros. |
+| `GET /api/shop/collections/:theme` | Colección temática: `beginner`, `anime-adaptations` o `horror`. |
+| `GET /api/shop/top-rated`, `recent`, `top-authors` | Recomendaciones, novedades y autores destacados. |
+| `POST /api/auth/login` | Inicio de sesión del panel administrativo. |
+| `GET/POST/PUT/DELETE /api/mangas` | Consulta y mantenimiento de inventario. |
+| `GET/POST/PUT/DELETE /api/customers` | Gestión de clientes. |
+| `GET/POST /api/rentals` | Registro y consulta de alquileres. |
+| `GET/POST /api/invoices` | Comprobantes internos de alquiler. |
+| `GET/PUT /api/settings` | Datos del negocio y días sugeridos de alquiler. |
+| `GET/POST /api/checkout/*` | Configuración, creación y confirmación de sesiones de checkout. |
+| `POST /api/payments/webhook` | Eventos de Stripe verificados con firma. |
 
-### Backend
-- **Runtime**: Node.js with TypeScript
-- **Framework**: Express 5.1.0
-- **Database**: MongoDB 9.0.0 with Mongoose ODM
-- **External APIs**:
-  - **Jikan API**: MyAnimeList metadata (title, author, genre, score, status)
-  - **MangaDex API**: High-quality volume-specific cover images
-- **Tools**: Axios, CORS, dotenv
-- **Security**: Helmet headers, allowlisted CORS, HS256 JWTs, login rate limiting, and bounded JSON request bodies
+## Stripe en modo de prueba
 
-### Frontend (Shop & Admin)
-- **Framework**: Vue 3.5.24 (Composition API)
-- **Build Tool**: Vite 7.2.4
-- **State Management**: Pinia 3.0.4
-- **Routing**: Vue Router 4.6.3
-- **Styling**: TailwindCSS 3.4.17
-- **Language**: TypeScript 5.9.3
+El entorno de producción está configurado para probar Stripe con claves de prueba. No se realizan cobros reales. Para probar el checkout, usa la tarjeta de prueba `4242 4242 4242 4242`, una fecha futura y cualquier CVC. Consulta las [tarjetas de prueba de Stripe](https://docs.stripe.com/testing?numbers-or-method-or-token=tokens).
 
-### Infrastructure
-- **Containerization**: Docker + Docker Compose
-- **Services**:
-  - MongoDB (port 27017)
-  - Backend API (port 5000)
-  - Frontend Shop (port 5173)
-  - Frontend Admin (port 5174)
+Webhook configurado para el entorno de prueba:
 
-## 📊 Data Models
+```
+https://mangago-api.vercel.app/api/payments/webhook
+```
 
-### Manga
-- Volume-level tracking with individual covers
-- Dual pricing (sale + rental)
-- MyAnimeList integration (score, status, ID)
-- Stock management
+No publiques `STRIPE_SECRET_KEY` ni `STRIPE_WEBHOOK_SECRET`. Para desarrollo local, usa Stripe CLI para reenviar eventos al webhook local y guarda el `whsec_...` local en un archivo `.env` ignorado por Git.
 
-### Customer
-- Complete profile with address
-- Virtual relationship with rentals
-- Active/inactive status
+## Desarrollo y comprobaciones
 
-### Rental
-- Customer and manga references
-- Status tracking (ACTIVE, RETURNED, LATE)
-- Due date and payment management
+Desde cada módulo puedes compilar la aplicación:
 
-## 🔌 API Endpoints
+```bash
+npm --prefix backend run build
+npm --prefix frontend run build
+npm --prefix frontend-admin run build
+```
 
-### Authentication
-- `POST /api/auth/login` - Returns JWT token for admin access
+Comprobaciones disponibles:
 
-### Security Notes
-- All `/api/mangas`, `/api/customers`, and `/api/rentals` routes expect `Authorization: Bearer <token>`
-- CORS is restricted by `CORS_ORIGINS` (comma-separated origins)
-- Set `JWT_SECRET` to at least 32 characters and `ADMIN_PASSWORD` to at least 12 characters. Compose binds service ports to localhost and reads secrets from the ignored root `.env` file.
-- `GET /health/live` reports that the API process is running; `GET /health/ready` reports whether MongoDB is connected.
+- `cd backend && npm run check:workflows`: flujos de API con MongoDB temporal; requiere MongoDB local en el puerto `27017` o configurar `TEST_MONGODB_URI`.
+- `cd frontend && npm run test:e2e`: flujos de navegador con Playwright; requiere instalar Chromium con `npx playwright install chromium`.
 
-### Manga Management
-- `GET /api/mangas` - List all manga
-- `GET /api/mangas/:id` - Get specific manga
-- `POST /api/mangas` - Create new manga (admin token required)
-- `PUT /api/mangas/:id` - Update manga (admin token required)
-- `DELETE /api/mangas/:id` - Delete manga (admin token required)
-- `GET /api/mangas/search?q=query` - Search local inventory
-- `GET /api/mangas/search-remote?q=query` - Search MyAnimeList
-- `GET /api/mangas/cover?title=X&volume=Y` - Fetch MangaDex cover
+## Repositorio y contacto
 
-### Shop (E-commerce)
-- `GET /api/shop/top-rated?limit=10` - Top-rated manga (MAL ≥ 7.5)
-- `GET /api/shop/recent?limit=6` - Recent additions
-- `GET /api/shop/collections/:theme` - Thematic collections
-- `GET /api/shop/author/:author` - Manga by author
-- `GET /api/shop/top-authors?limit=6` - Popular authors
-- `GET /api/shop/most-read-week` - Weekly rentals (currently used as a reading-interest proxy)
-- `GET /api/shop/most-rented-today` - Daily rental rankings
-- `GET /api/checkout/config` - Reports whether Stripe test checkout is configured
-- `POST /api/checkout/session` - Validates customer/cart, reserves stock and creates a Stripe Checkout session (requires `Idempotency-Key`)
-- `GET /api/checkout/confirmation/:sessionId` - Returns safe order status and internal receipt after payment
-- `POST /api/payments/webhook` - Receives signed Stripe events; use Stripe CLI to forward test events
-- `GET /api/orders` - Admin order and receipt list (admin token required)
-
-### Stripe test checkout setup
-
-1. Add Stripe **test mode** credentials to the ignored root `.env`: `STRIPE_SECRET_KEY=rk_test_...` (recommended restricted key) or `sk_test_...`, and `STRIPE_WEBHOOK_SECRET=whsec_...`. Set `STRIPE_CURRENCY` (defaults to `usd`) and `SHOP_URL` if the shop is hosted at another local URL.
-2. Install the official Stripe CLI separately and run `stripe listen --forward-to localhost:5000/api/payments/webhook`; put the displayed `whsec_...` in `.env` and restart the backend.
-3. Rebuild/restart Compose with `docker compose up -d --build backend frontend frontend-admin` and test using Stripe's documented test card `4242 4242 4242 4242` with any future expiry and any CVC.
-4. Paid orders appear under Admin → Pedidos. Paid rental lines also appear under Alquileres. Expired sessions release their stock reservation; the printed receipt is an internal, non-fiscal record.
-
-Checkout accepts only Stripe test keys (`rk_test_` restricted keys or `sk_test_` secret keys). Prefer a restricted key with only the Checkout Sessions permission. Stripe account onboarding and live payment availability depend on Stripe-supported business locations and are not enabled here.
-
-### Customer Management
-- `GET /api/customers` - List all customers (admin token required)
-- `POST /api/customers` - Create customer (admin token required)
-- `PUT /api/customers/:id` - Update customer (admin token required)
-- `DELETE /api/customers/:id` - Delete customer (admin token required)
-
-### Rental Management
-- `GET /api/rentals` - List all rentals (admin token required)
-- `POST /api/rentals` - Create rental (admin token required)
-- `PUT /api/rentals/:id/return` - Return a rental and restore stock (admin token required)
-- `PUT /api/rentals/:id/payment` - Toggle payment status (admin token required)
-
-## 🔮 Future Roadmap
-
-🛒 **Shopping Cart** - Complete cart management for sales and rentals
-
-💳 **Payment Gateway** - Integration with Cardnet for secure transactions
-
-📅 **Enhanced Rental System** - Advanced tracking with due dates and late fees
-
-🔐 **User Authentication** - Customer accounts with order history and wishlist
-
-☁️ **Cloud Deployment** - Production build optimization for web hosting
-
-📊 **Analytics Dashboard** - Sales reports, rental statistics, and inventory insights
-
-## 👤 Author
-
-**Luis Daniel Santana Mercado**
-
-- **GitHub**: [@luida01](https://github.com/luida01)
-- **Email**: luisdanielsantanamercado@gmail.com
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome!
-If you want to contribute to this project, please feel free to contact me.
-
----
-⭐ Built with passion for Manga and Code.
+- Código fuente: [github.com/luida01/mevn-crm-core](https://github.com/luida01/mevn-crm-core)
+- Autor: [Luis Daniel Santana Mercado](https://github.com/luida01)
+- Consultas y solicitudes de acceso al panel: [luisdanielsantanamercado@gmail.com](mailto:luisdanielsantanamercado@gmail.com)
