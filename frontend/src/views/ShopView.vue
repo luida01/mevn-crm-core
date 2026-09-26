@@ -217,7 +217,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useShopStore } from '../stores/shopStore';
 import type { Manga } from '../types/Manga';
 import MangaCarousel from '../components/MangaCarousel.vue';
@@ -232,13 +232,36 @@ import { t } from '../i18n';
 
 const store = useShopStore();
 const selectedManga = ref<Manga | null>(null);
+const featuredManga = ref<Manga | null>(null);
 const cart = useCartStore();
 const cartMessage = ref('');
 let cartMessageTimer: ReturnType<typeof setTimeout> | undefined;
+let lastFeaturedKey = '';
 const topAuthors = ref<Array<{ _id: string; count: number; avgScore?: number }>>([]);
 const mostReadWeek = ref<Manga[]>([]);
 const mostRentedToday = ref<Manga[]>([]);
-const featuredManga = computed(() => store.topRated[0] || store.recentArrivals[0] || null);
+
+const pickFeaturedManga = () => {
+  const uniqueManga = new Map<string, Manga>();
+  for (const manga of [...store.topRated, ...store.recentArrivals]) {
+    if (manga.stock <= 0) continue;
+    const key = `${manga.title.trim().toLocaleLowerCase()}|${manga.author.trim().toLocaleLowerCase()}`;
+    if (!uniqueManga.has(key)) uniqueManga.set(key, manga);
+  }
+
+  const available = [...uniqueManga.entries()];
+  const alternatives = available.filter(([key]) => key !== lastFeaturedKey);
+  const pool = alternatives.length ? alternatives : available;
+  const selected = pool[Math.floor(Math.random() * pool.length)];
+
+  if (selected) {
+    lastFeaturedKey = selected[0];
+    featuredManga.value = selected[1];
+    return;
+  }
+
+  featuredManga.value = store.topRated[0] || store.recentArrivals[0] || null;
+};
 
 const openMangaDetails = (manga: Manga) => {
   selectedManga.value = manga;
@@ -267,6 +290,7 @@ onMounted(async () => {
     store.fetchCollection('anime-adaptations'),
     store.fetchCollection('horror')
   ]);
+  pickFeaturedManga();
 
   try {
     const authorsResponse = await api.get<Array<{ _id: string; count: number; avgScore?: number }>>('/shop/top-authors?limit=6');
